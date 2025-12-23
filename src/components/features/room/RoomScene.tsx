@@ -2,10 +2,12 @@
 
 /* eslint-disable @next/next/no-img-element -- Room sprites require precise positioning with percentage-based absolute layout */
 
+import confetti from "canvas-confetti";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 
-import { ROOM_ASSETS } from "@/lib/constants";
+import { useAudio } from "@/hooks/use-audio";
+import { AUDIO_PATHS, ROOM_ASSETS } from "@/lib/constants";
 
 import type { JSX } from "react";
 
@@ -91,6 +93,9 @@ export function RoomScene({
     "waiting" | "entering" | "walking" | "together" | "interactive"
   >("waiting");
 
+  // Confetti celebration sound
+  const confettiSound = useAudio(AUDIO_PATHS.COLLECT, { volume: 0.5 });
+
   const advanceStep = useCallback(
     (newStep: SceneStep): void => {
       onStepChange?.(newStep);
@@ -154,7 +159,37 @@ export function RoomScene({
     }
   }, [animationPhase, onDinnClick]);
 
+  // Carolina confetti celebration - triggers when sitting together
+  const handleCarolinaClick = useCallback(
+    (e: React.MouseEvent): void => {
+      const isClickable =
+        animationPhase === "together" || animationPhase === "interactive";
+      if (!isClickable) {
+        return;
+      }
+
+      e.stopPropagation();
+      confettiSound.play();
+
+      // Fire confetti from click coordinates (normalized 0-1)
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+
+      confetti({
+        particleCount: 40,
+        spread: 70,
+        origin: { x, y },
+        colors: ["#00ff41", "#ef4444", "#ffffff"],
+        disableForReducedMotion: true,
+        zIndex: 100,
+      });
+    },
+    [animationPhase, confettiSound]
+  );
+
   const isDinnInteractive = animationPhase === "interactive";
+  const isCarolinaInteractive =
+    animationPhase === "together" || animationPhase === "interactive";
 
   return (
     <motion.div
@@ -250,13 +285,14 @@ export function RoomScene({
         <motion.img
           src={ROOM_ASSETS.CAROLINA}
           alt="Carolina"
-          className="absolute h-auto w-[12%] origin-bottom object-contain"
+          className={`absolute h-auto w-[12%] origin-bottom object-contain ${isCarolinaInteractive ? "cursor-pointer hover:brightness-110" : ""}`}
           style={{
             zIndex: 10,
             top: "42%",
             left: "36%",
             scaleX: -1,
           }}
+          onClick={handleCarolinaClick}
           variants={carolinaVariants}
           initial="initial"
           animate={
