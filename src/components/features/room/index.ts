@@ -1,2 +1,8 @@
 export { RoomScene } from "./RoomScene";
-export type { RoomSceneProps } from "./RoomScene";
+export type { RoomSceneProps, SceneStep } from "./RoomScene";
+export { Subtitle } from "./Subtitle";
+export type { SubtitleProps } from "./Subtitle";
+export { SnowOverlay } from "./SnowOverlay";
+export type { SnowOverlayProps } from "./SnowOverlay";
+export { LetterView } from "./LetterView";
+export type { LetterViewProps } from "./LetterView";

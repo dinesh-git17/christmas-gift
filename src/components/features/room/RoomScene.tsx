@@ -3,9 +3,12 @@
 /* eslint-disable @next/next/no-img-element -- Room sprites require precise positioning with percentage-based absolute layout */
 
 import { motion, type Variants } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import type { JSX } from "react";
+
+/** Scene step representing the narrative timeline */
+export type SceneStep = 0 | 1 | 2 | 3 | 4;
 
 const ROOM_ASSETS = {
   FURNISHED_ROOM: "/assets/room/room_furnished.png",
@@ -13,14 +16,27 @@ const ROOM_ASSETS = {
   CAROLINA: "/assets/room/iso_carolina.png",
 } as const;
 
-/** Animation timing constants in seconds */
+/** Animation timing constants - slowed down for cinematic feel */
 const TIMING = {
-  DINN_BREATHE_DURATION: 2,
-  CAROLINA_FADE_DELAY: 1,
-  CAROLINA_FADE_DURATION: 0.8,
-  CAROLINA_WALK_DELAY: 2,
-  CAROLINA_WALK_DURATION: 2.5,
-  TOGETHER_DELAY: 4500, // ms - when both start breathing together
+  // Initial scene
+  ROOM_FADE_DURATION: 2,
+  STEP_0_HOLD: 3000, // Hold first message before Carolina appears
+
+  // Carolina entrance
+  CAROLINA_FADE_DELAY: 0.5,
+  CAROLINA_FADE_DURATION: 1.2,
+  STEP_1_HOLD: 2500, // Let Carolina's appearance breathe
+
+  // Walk to couch
+  CAROLINA_WALK_DELAY: 0.3,
+  CAROLINA_WALK_DURATION: 4, // Slower walk
+
+  // Together scene
+  STEP_3_HOLD: 4000, // Hold romantic message before showing hint
+  DINN_BREATHE_DURATION: 2.5,
+
+  // Glow animation
+  DINN_GLOW_DURATION: 2,
 } as const;
 
 /** Breathing animation keyframes */
@@ -33,8 +49,8 @@ const breatheAnimation = {
 const carolinaVariants: Variants = {
   initial: {
     opacity: 0,
-    x: 180, // Start near Christmas tree (right side)
-    y: 100, // Lower in the room
+    x: 180,
+    y: 100,
   },
   enter: {
     opacity: 1,
@@ -48,7 +64,7 @@ const carolinaVariants: Variants = {
   },
   walkToCouch: {
     opacity: 1,
-    x: 0, // Final position on left pillow
+    x: 0,
     y: 0,
     transition: {
       duration: TIMING.CAROLINA_WALK_DURATION,
@@ -60,31 +76,88 @@ const carolinaVariants: Variants = {
 
 export interface RoomSceneProps {
   className?: string;
+  onStepChange?: (step: SceneStep) => void;
+  onDinnClick?: () => void;
 }
 
-export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
+export function RoomScene({
+  className = "",
+  onStepChange,
+  onDinnClick,
+}: RoomSceneProps): JSX.Element {
   const [animationPhase, setAnimationPhase] = useState<
-    "waiting" | "entering" | "together"
+    "waiting" | "entering" | "walking" | "together" | "interactive"
   >("waiting");
 
-  useEffect(() => {
-    // Phase transitions based on animation timing
-    const enterTimer = setTimeout(() => {
-      setAnimationPhase("entering");
-    }, TIMING.CAROLINA_FADE_DELAY * 1000);
+  const advanceStep = useCallback(
+    (newStep: SceneStep): void => {
+      onStepChange?.(newStep);
+    },
+    [onStepChange]
+  );
 
-    const togetherTimer = setTimeout(() => {
-      setAnimationPhase("together");
-    }, TIMING.TOGETHER_DELAY);
+  // Step 0 -> Step 1: Initial hold, then Carolina appears
+  useEffect(() => {
+    const step1Timer = setTimeout(() => {
+      advanceStep(1);
+      setAnimationPhase("entering");
+    }, TIMING.STEP_0_HOLD);
 
     return (): void => {
-      clearTimeout(enterTimer);
-      clearTimeout(togetherTimer);
+      clearTimeout(step1Timer);
     };
-  }, []);
+  }, [advanceStep]);
+
+  // Step 1 -> Step 2: Let Carolina's appearance breathe, then walk
+  useEffect(() => {
+    if (animationPhase !== "entering") {
+      return;
+    }
+
+    const step2Timer = setTimeout(() => {
+      advanceStep(2);
+      setAnimationPhase("walking");
+    }, TIMING.STEP_1_HOLD);
+
+    return (): void => {
+      clearTimeout(step2Timer);
+    };
+  }, [animationPhase, advanceStep]);
+
+  // Step 3 -> Step 4: Hold romantic message, then show hint
+  useEffect(() => {
+    if (animationPhase !== "together") {
+      return;
+    }
+
+    const step4Timer = setTimeout(() => {
+      advanceStep(4);
+      setAnimationPhase("interactive");
+    }, TIMING.STEP_3_HOLD);
+
+    return (): void => {
+      clearTimeout(step4Timer);
+    };
+  }, [animationPhase, advanceStep]);
+
+  const handleWalkComplete = useCallback((): void => {
+    advanceStep(3);
+    setAnimationPhase("together");
+  }, [advanceStep]);
+
+  const handleDinnClick = useCallback((): void => {
+    if (animationPhase === "interactive") {
+      onDinnClick?.();
+    }
+  }, [animationPhase, onDinnClick]);
+
+  const isDinnInteractive = animationPhase === "interactive";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: TIMING.ROOM_FADE_DURATION, ease: "easeOut" }}
       className={`relative left-1/2 w-[150vw] -translate-x-[36%] ${className}`}
     >
       {/* Room container */}
@@ -98,23 +171,57 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
         />
 
         {/* Layer 1: Dinn sitting on couch with breathing animation */}
-        <motion.img
-          src={ROOM_ASSETS.DINN}
-          alt="Dinn waiting on the couch"
-          className="absolute h-auto w-[12%] origin-bottom object-contain"
+        <motion.div
+          className="absolute h-auto w-[12%] origin-bottom"
           style={{
             zIndex: 10,
             top: "40%",
             left: "44%",
+            cursor: isDinnInteractive ? "pointer" : "default",
           }}
-          animate={breatheAnimation}
+          animate={{
+            ...breatheAnimation,
+            filter: isDinnInteractive
+              ? [
+                  "drop-shadow(0 0 8px rgba(255, 215, 0, 0.4))",
+                  "drop-shadow(0 0 20px rgba(255, 215, 0, 0.7))",
+                  "drop-shadow(0 0 8px rgba(255, 215, 0, 0.4))",
+                ]
+              : "none",
+          }}
           transition={{
-            duration: TIMING.DINN_BREATHE_DURATION,
-            repeat: Infinity,
-            ease: "easeInOut",
+            scaleY: {
+              duration: TIMING.DINN_BREATHE_DURATION,
+              repeat: Infinity,
+              ease: "easeInOut",
+            },
+            translateY: {
+              duration: TIMING.DINN_BREATHE_DURATION,
+              repeat: Infinity,
+              ease: "easeInOut",
+            },
+            filter: {
+              duration: TIMING.DINN_GLOW_DURATION,
+              repeat: Infinity,
+              ease: "easeInOut",
+            },
           }}
-          draggable={false}
-        />
+          onClick={handleDinnClick}
+          role={isDinnInteractive ? "button" : undefined}
+          tabIndex={isDinnInteractive ? 0 : undefined}
+          onKeyDown={(e): void => {
+            if (isDinnInteractive && (e.key === "Enter" || e.key === " ")) {
+              handleDinnClick();
+            }
+          }}
+        >
+          <img
+            src={ROOM_ASSETS.DINN}
+            alt="Dinn waiting on the couch"
+            className="h-auto w-full object-contain"
+            draggable={false}
+          />
+        </motion.div>
 
         {/* Layer 2: Carolina - starts at tree, walks to couch (left pillow) */}
         <motion.img
@@ -130,17 +237,21 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           variants={carolinaVariants}
           initial="initial"
           animate={
-            animationPhase === "together"
+            animationPhase === "together" || animationPhase === "interactive"
               ? {
                   opacity: 1,
                   x: 0,
                   y: 0,
                   ...breatheAnimation,
                 }
-              : ["enter", "walkToCouch"]
+              : animationPhase === "walking"
+                ? "walkToCouch"
+                : animationPhase === "entering"
+                  ? "enter"
+                  : "initial"
           }
           transition={
-            animationPhase === "together"
+            animationPhase === "together" || animationPhase === "interactive"
               ? {
                   scaleY: {
                     duration: TIMING.DINN_BREATHE_DURATION,
@@ -155,9 +266,14 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
                 }
               : undefined
           }
+          onAnimationComplete={(definition): void => {
+            if (definition === "walkToCouch") {
+              handleWalkComplete();
+            }
+          }}
           draggable={false}
         />
       </div>
-    </div>
+    </motion.div>
   );
 }

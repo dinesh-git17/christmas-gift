@@ -82,6 +82,27 @@ export const RUN_FRAME_DURATION_MS = 100;
 export const RUN_FRAME_COUNT = 4;
 
 // Asset paths
+// Room scene script - narrative text synchronized with animation steps
+export const ROOM_SCRIPT = [
+  { id: 0, text: "The signal led me straight to you." },
+  { id: 1, text: "There you are..." },
+  { id: 2, text: "" }, // Silent during walk
+  { id: 3, text: "One day, we will be together just like this for Christmas." },
+  { id: 4, text: "Touch Dinn for a surprise..." },
+] as const;
+
+// Room scene timing constants (seconds)
+export const ROOM_TIMING = {
+  FADE_IN_DURATION: 1.5,
+  MUSIC_VOLUME: 0.4,
+  STEP_0_DURATION: 2, // Initial text display
+  STEP_1_DURATION: 1.5, // Carolina appears
+  STEP_2_DURATION: 2.5, // Walking (silent)
+  STEP_3_DELAY: 0.5, // Delay before final text
+  SNOW_FADE_DURATION: 2,
+  LETTER_HINT_DELAY: 5, // Show hint after this many seconds
+} as const;
+
 export const GAME_ASSETS = {
   SKY_BG: "/assets/game/sky_bg.png",
   SKY_MID: "/assets/game/sky_mid_layer.png",
