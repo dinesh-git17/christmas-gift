@@ -33,13 +33,13 @@ const breatheAnimation = {
 const carolinaVariants: Variants = {
   initial: {
     opacity: 0,
-    x: -80,
-    y: 30,
+    x: 180, // Start near Christmas tree (right side)
+    y: 100, // Lower in the room
   },
   enter: {
     opacity: 1,
-    x: -80,
-    y: 30,
+    x: 180,
+    y: 100,
     transition: {
       duration: TIMING.CAROLINA_FADE_DURATION,
       delay: TIMING.CAROLINA_FADE_DELAY,
@@ -48,7 +48,7 @@ const carolinaVariants: Variants = {
   },
   walkToCouch: {
     opacity: 1,
-    x: 0,
+    x: 0, // Final position on left pillow
     y: 0,
     transition: {
       duration: TIMING.CAROLINA_WALK_DURATION,
@@ -97,7 +97,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           draggable={false}
         />
 
-        {/* Layer 1: Dinn sitting on couch (left side) with breathing animation */}
+        {/* Layer 1: Dinn sitting on couch (right pillow) with breathing animation */}
         <motion.img
           src={ROOM_ASSETS.DINN}
           alt="Dinn waiting on the couch"
@@ -105,7 +105,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           style={{
             zIndex: 10,
             top: "38%",
-            left: "44%",
+            left: "48%",
           }}
           animate={breatheAnimation}
           transition={{
@@ -116,7 +116,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           draggable={false}
         />
 
-        {/* Layer 2: Carolina - animates based on phase */}
+        {/* Layer 2: Carolina - starts at tree, walks to couch (left pillow) */}
         <motion.img
           src={ROOM_ASSETS.CAROLINA}
           alt="Carolina"
@@ -124,7 +124,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           style={{
             zIndex: 10,
             top: "38%",
-            left: "52%",
+            left: "40%",
           }}
           variants={carolinaVariants}
           initial="initial"
