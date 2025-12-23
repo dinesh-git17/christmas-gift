@@ -2,7 +2,7 @@
 
 import { forwardRef, useImperativeHandle, useRef } from "react";
 
-import { GAME_ASSETS, GAME_SPEED, PARALLAX_SPEEDS } from "@/lib/constants";
+import { GAME_ASSETS, PARALLAX_SPEEDS } from "@/lib/constants";
 
 import { ParallaxLayer, type ParallaxLayerRef } from "./ParallaxLayer";
 
@@ -11,7 +11,7 @@ export interface GameCanvasProps {
 }
 
 export interface GameCanvasRef {
-  update: (deltaTime: number) => void;
+  update: (deltaTime: number, currentSpeed: number) => void;
   reset: () => void;
 }
 
@@ -22,10 +22,10 @@ export const GameCanvas = forwardRef<GameCanvasRef, GameCanvasProps>(
     const groundLayerRef = useRef<ParallaxLayerRef>(null);
 
     useImperativeHandle(ref, () => ({
-      update: (deltaTime: number): void => {
-        skyLayerRef.current?.updatePosition(GAME_SPEED, deltaTime);
-        midLayerRef.current?.updatePosition(GAME_SPEED, deltaTime);
-        groundLayerRef.current?.updatePosition(GAME_SPEED, deltaTime);
+      update: (deltaTime: number, currentSpeed: number): void => {
+        skyLayerRef.current?.updatePosition(currentSpeed, deltaTime);
+        midLayerRef.current?.updatePosition(currentSpeed, deltaTime);
+        groundLayerRef.current?.updatePosition(currentSpeed, deltaTime);
       },
       reset: (): void => {
         skyLayerRef.current?.reset();

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAudio } from "@/hooks";
-import { AUDIO_PATHS } from "@/lib/constants";
+import { AUDIO_PATHS, WIN_SCORE } from "@/lib/constants";
 
 import type { JSX } from "react";
 
@@ -15,7 +15,6 @@ export interface MissionSuccessProps {
 }
 
 const HEADER_TEXT = "CONNECTION ESTABLISHED";
-const TARGET_SCORE = 10;
 
 export function MissionSuccess({ score }: MissionSuccessProps): JSX.Element {
   const router = useRouter();
@@ -146,7 +145,7 @@ export function MissionSuccess({ score }: MissionSuccessProps): JSX.Element {
               PACKETS RECOVERED:
             </span>
             <span className="font-mono text-sm font-bold text-white">
-              {score}/{TARGET_SCORE}
+              {score}/{WIN_SCORE}
             </span>
           </div>
 

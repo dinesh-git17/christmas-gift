@@ -30,7 +30,10 @@ export const AUDIO_PATHS = {
 // Game physics constants
 export const GRAVITY = 0.8;
 export const JUMP_FORCE = -15;
-export const GAME_SPEED = 5;
+
+// Dynamic speed constants
+export const BASE_GAME_SPEED = 5;
+export const SPEED_INCREMENT = 0.15; // Speed increases by 0.15 per collected heart
 
 // Player constants
 export const PLAYER_WIDTH = 100;
@@ -51,15 +54,24 @@ export const PARALLAX_SPEEDS = {
 } as const;
 
 // Entity spawner constants
-export const SPAWN_INTERVAL_MIN = 1500; // ms
-export const SPAWN_INTERVAL_MAX = 3000; // ms
-export const HEART_SPAWN_CHANCE = 0.7; // 70% hearts, 30% glitches
 export const ENTITY_WIDTH = 64;
 export const ENTITY_HEIGHT = 64;
 export const HITBOX_PADDING = 0.2; // 20% smaller hitbox for "fair" collisions
 
+// Progressive spawner constants
+export const SPAWN_INTERVAL_BASE = 2000; // Base spawn interval (ms)
+export const SPAWN_INTERVAL_MIN = 800; // Minimum spawn interval cap (ms)
+export const SPAWN_INTERVAL_REDUCTION = 50; // Reduce interval by 50ms per score
+
+// Progressive glitch ratio thresholds
+export const GLITCH_RATIO_LEVEL_1 = 0.3; // 0-9 hearts: 30% glitches
+export const GLITCH_RATIO_LEVEL_2 = 0.5; // 10-19 hearts: 50% glitches
+export const GLITCH_RATIO_LEVEL_3 = 0.7; // 20+ hearts: 70% glitches (panic mode)
+export const GLITCH_TIER_1_THRESHOLD = 10;
+export const GLITCH_TIER_2_THRESHOLD = 20;
+
 // Win condition
-export const WIN_SCORE = 10;
+export const WIN_SCORE = 25;
 
 // Countdown constants
 export const COUNTDOWN_STEPS = ["3", "2", "1", "LINK!"] as const;
