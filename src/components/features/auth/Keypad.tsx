@@ -31,7 +31,7 @@ const KEYPAD_BUTTONS = [
   "",
 ] as const;
 
-const HINT_TEXT = "// hint: 🎂 (mm/yy)";
+const HINT_TEXT = "// hint: 🎂 (dd/mm)";
 
 export function Keypad({ onSuccess }: KeypadProps): JSX.Element {
   const [input, setInput] = useState("");
