@@ -13,6 +13,7 @@ interface UseAudioReturn {
   play: () => void;
   pause: () => void;
   stop: () => void;
+  preload: () => void;
 }
 
 export function useAudio(
@@ -21,18 +22,30 @@ export function useAudio(
 ): UseAudioReturn {
   const { loop = false, volume = 1 } = options;
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isLoadedRef = useRef(false);
   const isMuted = useGameStore((state) => state.isMuted);
 
   useEffect(() => {
-    audioRef.current = new Audio(src);
-    audioRef.current.loop = loop;
-    audioRef.current.volume = volume;
+    const audio = new Audio();
+    audio.src = src;
+    audio.loop = loop;
+    audio.volume = volume;
+    audio.preload = "auto";
+    // iOS Safari optimization: load metadata immediately
+    audio.load();
+    audioRef.current = audio;
+
+    const handleCanPlayThrough = (): void => {
+      isLoadedRef.current = true;
+    };
+
+    audio.addEventListener("canplaythrough", handleCanPlayThrough);
 
     return (): void => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
     };
   }, [src, loop, volume]);
 
@@ -42,14 +55,27 @@ export function useAudio(
     }
   }, [isMuted]);
 
+  const preload = useCallback((): void => {
+    if (audioRef.current && !isLoadedRef.current) {
+      // Trigger load on user interaction for iOS
+      audioRef.current.load();
+    }
+  }, []);
+
   const play = useCallback((): void => {
     if (audioRef.current && !isMuted) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        // Autoplay may be blocked by browser
-      });
+      // Clone for overlapping sounds or reset for looping
+      if (!loop && audioRef.current.currentTime > 0) {
+        audioRef.current.currentTime = 0;
+      }
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay may be blocked by browser
+        });
+      }
     }
-  }, [isMuted]);
+  }, [isMuted, loop]);
 
   const pause = useCallback((): void => {
     if (audioRef.current) {
@@ -64,5 +90,5 @@ export function useAudio(
     }
   }, []);
 
-  return { play, pause, stop };
+  return { play, pause, stop, preload };
 }
