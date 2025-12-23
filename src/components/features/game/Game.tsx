@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAudio, useGameLoop, useWindowSize } from "@/hooks";
-import { AUDIO_PATHS } from "@/lib/constants";
+import { AUDIO_PATHS, BASE_GAME_SPEED, SPEED_INCREMENT } from "@/lib/constants";
 import { useGameStore } from "@/lib/store";
 
 import { Countdown } from "./Countdown";
 import { GameCanvas, type GameCanvasRef } from "./GameCanvas";
+import { GameHUD } from "./GameHUD";
 import { GameOverScreen } from "./GameOverScreen";
 import { MissionBriefing } from "./MissionBriefing";
 import { MissionSuccess } from "./MissionSuccess";
@@ -71,11 +72,14 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
         return;
       }
 
-      canvasRef.current?.update(deltaTime);
+      // Calculate dynamic speed based on score
+      const currentSpeed = BASE_GAME_SPEED + score * SPEED_INCREMENT;
+
+      canvasRef.current?.update(deltaTime, currentSpeed);
       playerRef.current?.update(deltaTime);
-      spawnerRef.current?.update(deltaTime);
+      spawnerRef.current?.update(deltaTime, currentSpeed);
     },
-    [isPlaying]
+    [isPlaying, score]
   );
 
   const { start, stop } = useGameLoop(gameLoopCallback);
@@ -207,16 +211,8 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
         )}
       </GameCanvas>
 
-      {/* Score display */}
-      {isPlaying && (
-        <div className="absolute top-4 left-4 z-40">
-          <div className="bg-midnight/60 rounded-lg px-4 py-2 backdrop-blur-sm">
-            <span className="text-terminal-green font-mono text-xl font-bold">
-              ❤️ {score} / 10
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Game HUD */}
+      {isPlaying && <GameHUD score={score} />}
 
       {/* Mission Briefing - shown when idle */}
       {status === "idle" && <MissionBriefing onInitiate={handleInitiate} />}

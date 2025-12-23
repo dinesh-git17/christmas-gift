@@ -16,14 +16,18 @@ import {
   ENTITY_WIDTH,
   FLOOR_Y_PERCENT,
   GAME_ASSETS,
-  GAME_SPEED,
+  GLITCH_RATIO_LEVEL_1,
+  GLITCH_RATIO_LEVEL_2,
+  GLITCH_RATIO_LEVEL_3,
+  GLITCH_TIER_1_THRESHOLD,
+  GLITCH_TIER_2_THRESHOLD,
   GRAVITY,
-  HEART_SPAWN_CHANCE,
   HITBOX_PADDING,
   JUMP_FORCE,
   PLAYER_HEIGHT,
-  SPAWN_INTERVAL_MAX,
+  SPAWN_INTERVAL_BASE,
   SPAWN_INTERVAL_MIN,
+  SPAWN_INTERVAL_REDUCTION,
   WIN_SCORE,
 } from "@/lib/constants";
 import { useGameStore } from "@/lib/store";
@@ -48,7 +52,7 @@ export interface SpawnerProps {
 }
 
 export interface SpawnerRef {
-  update: (deltaTime: number) => void;
+  update: (deltaTime: number, currentSpeed: number) => void;
   reset: () => void;
 }
 
@@ -75,12 +79,21 @@ function getEntityHitbox(entity: Entity): Hitbox {
   };
 }
 
-// Generate random spawn interval
-function getRandomSpawnInterval(): number {
-  return (
-    SPAWN_INTERVAL_MIN +
-    Math.random() * (SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN)
-  );
+// Calculate spawn interval based on score (gets faster as score increases)
+function getSpawnInterval(score: number): number {
+  const interval = SPAWN_INTERVAL_BASE - score * SPAWN_INTERVAL_REDUCTION;
+  return Math.max(SPAWN_INTERVAL_MIN, interval);
+}
+
+// Get glitch spawn probability based on score tier
+function getGlitchProbability(score: number): number {
+  if (score >= GLITCH_TIER_2_THRESHOLD) {
+    return GLITCH_RATIO_LEVEL_3; // 70% glitches (panic mode!)
+  }
+  if (score >= GLITCH_TIER_1_THRESHOLD) {
+    return GLITCH_RATIO_LEVEL_2; // 50% glitches
+  }
+  return GLITCH_RATIO_LEVEL_1; // 30% glitches
 }
 
 // Delay before showing game over to let crash animation play
@@ -98,7 +111,7 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
   const entityRefsMap = useRef<Map<number, HTMLDivElement>>(new Map());
   const nextIdRef = useRef(0);
   const lastSpawnTimeRef = useRef(0);
-  const spawnIntervalRef = useRef(getRandomSpawnInterval());
+  const spawnIntervalRef = useRef(getSpawnInterval(0));
 
   // Audio
   const { play: playCollect, preload: preloadCollect } = useAudio(
@@ -127,14 +140,16 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
   // Player floor position (top of sprite when grounded)
   const playerFloorY = containerHeight * FLOOR_Y_PERCENT - PLAYER_HEIGHT;
 
-  // Spawn a new entity
+  // Spawn a new entity with progressive difficulty
   const spawnEntity = useCallback((): void => {
-    const isHeart = Math.random() < HEART_SPAWN_CHANCE;
-    const type: EntityType = isHeart ? "heart" : "glitch";
+    // Glitch probability increases with score
+    const glitchProbability = getGlitchProbability(score);
+    const isGlitch = Math.random() < glitchProbability;
+    const type: EntityType = isGlitch ? "glitch" : "heart";
 
     // Hearts float at varied heights, glitches are on ground
     let y: number;
-    if (isHeart) {
+    if (!isGlitch) {
       // Hearts spawn within reachable jump range
       // Min Y = peak jump height (with 20px margin for collision)
       // Max Y = just above ground level (easy pickup)
@@ -161,11 +176,11 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
     });
 
     setEntities((prev) => [...prev, newEntity]);
-  }, [containerWidth, floorY, maxJumpHeight, playerFloorY]);
+  }, [containerWidth, floorY, maxJumpHeight, playerFloorY, score]);
 
   // Update method called by game loop
   const update = useCallback(
-    (deltaTime: number): void => {
+    (deltaTime: number, currentSpeed: number): void => {
       // Don't update if game is won
       if (score >= WIN_SCORE) {
         return;
@@ -173,11 +188,11 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
 
       const now = performance.now();
 
-      // Check spawn timer
+      // Check spawn timer with progressive interval
       if (now - lastSpawnTimeRef.current >= spawnIntervalRef.current) {
         spawnEntity();
         lastSpawnTimeRef.current = now;
-        spawnIntervalRef.current = getRandomSpawnInterval();
+        spawnIntervalRef.current = getSpawnInterval(score);
       }
 
       // Update entity positions and check collisions
@@ -187,9 +202,9 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
       let hitGlitchId: number | null = null;
 
       entityPositionsRef.current.forEach((pos, id) => {
-        // Move entity left at game speed
+        // Move entity left at current dynamic speed
         const gravityScale = deltaTime * 60;
-        pos.x -= GAME_SPEED * gravityScale;
+        pos.x -= currentSpeed * gravityScale;
 
         // Update DOM directly for smooth movement
         const entityEl = entityRefsMap.current.get(id);
@@ -300,7 +315,7 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
     entityRefsMap.current.clear();
     nextIdRef.current = 0;
     lastSpawnTimeRef.current = performance.now();
-    spawnIntervalRef.current = getRandomSpawnInterval();
+    spawnIntervalRef.current = getSpawnInterval(0);
   }, []);
 
   useImperativeHandle(ref, () => ({
