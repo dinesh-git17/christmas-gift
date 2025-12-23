@@ -97,7 +97,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           draggable={false}
         />
 
-        {/* Layer 1: Dinn sitting on couch (right pillow) with breathing animation */}
+        {/* Layer 1: Dinn sitting on couch with breathing animation */}
         <motion.img
           src={ROOM_ASSETS.DINN}
           alt="Dinn waiting on the couch"
@@ -105,7 +105,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           style={{
             zIndex: 10,
             top: "38%",
-            left: "48%",
+            left: "44%",
           }}
           animate={breatheAnimation}
           transition={{
@@ -124,7 +124,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           style={{
             zIndex: 10,
             top: "38%",
-            left: "40%",
+            left: "36%",
           }}
           variants={carolinaVariants}
           initial="initial"
