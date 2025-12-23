@@ -156,9 +156,6 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           }
           draggable={false}
         />
-
-        {/* Layer 3: Warm ambient overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-orange-500/5 mix-blend-overlay" />
       </div>
     </div>
   );
