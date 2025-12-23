@@ -31,6 +31,8 @@ const KEYPAD_BUTTONS = [
   "",
 ] as const;
 
+const HINT_TEXT = "// hint: 🎂 (mm/yy)";
+
 export function Keypad({ onSuccess }: KeypadProps): JSX.Element {
   const [input, setInput] = useState("");
   const [isShaking, setIsShaking] = useState(false);
@@ -104,6 +106,17 @@ export function Keypad({ onSuccess }: KeypadProps): JSX.Element {
       >
         {renderDots()}
       </motion.div>
+
+      {/* Developer comment hint - fades in after 1.5s delay */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 0.5 }}
+        className="text-terminal-green/50 mb-4 font-mono text-sm"
+        aria-live="polite"
+      >
+        {HINT_TEXT}
+      </motion.p>
 
       {/* Keypad grid */}
       <div className="grid grid-cols-3 gap-4">
