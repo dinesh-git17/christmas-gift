@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -10,7 +9,6 @@ import {
   BOOT_SEQUENCE_MESSAGES,
   TYPEWRITER_CHAR_DELAY_MS,
 } from "@/lib/constants";
-import { useAuthStore } from "@/lib/store";
 
 import type { JSX } from "react";
 
@@ -69,11 +67,14 @@ function MessageLine({
   );
 }
 
-export function BootSequence(): JSX.Element {
-  const router = useRouter();
-  const setAuthStage = useAuthStore((state) => state.setAuthStage);
+export interface BootSequenceProps {
+  onComplete: () => void;
+}
+
+export function BootSequence({ onComplete }: BootSequenceProps): JSX.Element {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const hasCalledComplete = useRef(false);
 
   const handleMessageComplete = useCallback((): void => {
     if (currentMessageIndex < BOOT_SEQUENCE_MESSAGES.length - 1) {
@@ -86,19 +87,21 @@ export function BootSequence(): JSX.Element {
   }, [currentMessageIndex]);
 
   useEffect(() => {
-    if (!isComplete) {
+    if (!isComplete || hasCalledComplete.current) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      setAuthStage("AUTHENTICATED");
-      router.push("/game");
+      if (!hasCalledComplete.current) {
+        hasCalledComplete.current = true;
+        onComplete();
+      }
     }, BOOT_COMPLETE_DELAY_MS);
 
     return (): void => {
       clearTimeout(timeout);
     };
-  }, [isComplete, router, setAuthStage]);
+  }, [isComplete, onComplete]);
 
   return (
     <motion.div

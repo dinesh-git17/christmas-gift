@@ -5,7 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameLoop, useWindowSize } from "@/hooks";
 import { useGameStore } from "@/lib/store";
 
+import { Countdown } from "./Countdown";
 import { GameCanvas, type GameCanvasRef } from "./GameCanvas";
+import { MissionBriefing } from "./MissionBriefing";
 import { Player, type PlayerRef } from "./Player";
 import { Spawner, type SpawnerRef } from "./Spawner";
 
@@ -31,6 +33,7 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
     status,
     score,
     setIsPlaying,
+    startCountdown,
     reset: resetGame,
   } = useGameStore();
   const { height: windowHeight, width: windowWidth } = useWindowSize();
@@ -142,30 +145,32 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
     };
   }, [stop, onGameEnd]);
 
-  // Start game handler
-  const handleStartGame = useCallback(
+  // Handle mission briefing initiate - start countdown
+  const handleInitiate = useCallback((): void => {
+    resetGame();
+    canvasRef.current?.reset();
+    playerRef.current?.reset();
+    spawnerRef.current?.reset();
+    startCountdown();
+  }, [resetGame, startCountdown]);
+
+  // Handle countdown complete - start the game
+  const handleCountdownComplete = useCallback((): void => {
+    setIsPlaying(true);
+  }, [setIsPlaying]);
+
+  // Handle retry after game over
+  const handleRetry = useCallback(
     (event: React.MouseEvent | React.TouchEvent): void => {
       event.stopPropagation();
       resetGame();
       canvasRef.current?.reset();
       playerRef.current?.reset();
       spawnerRef.current?.reset();
-      setIsPlaying(true);
+      startCountdown();
     },
-    [resetGame, setIsPlaying]
+    [resetGame, startCountdown]
   );
-
-  // Get button text based on game status
-  const getButtonText = (): string => {
-    switch (status) {
-      case "won":
-        return "SIGNAL RESTORED!";
-      case "lost":
-        return "SIGNAL LOST";
-      default:
-        return "TAP TO START";
-    }
-  };
 
   return (
     <div
@@ -203,19 +208,27 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
         </div>
       )}
 
-      {/* Start/Game Over/Win overlay */}
-      {!isPlaying && (
+      {/* Mission Briefing - shown when idle */}
+      {status === "idle" && <MissionBriefing onInitiate={handleInitiate} />}
+
+      {/* Countdown overlay */}
+      {status === "countdown" && (
+        <Countdown onComplete={handleCountdownComplete} />
+      )}
+
+      {/* Game Over/Win overlay */}
+      {(status === "won" || status === "lost") && (
         <div className="bg-midnight/80 absolute inset-0 z-50 flex flex-col items-center justify-center gap-6">
           {/* Status message */}
           {status === "won" && (
             <div className="text-terminal-green animate-pulse text-center text-2xl font-bold">
-              🎄 CONNECTION ESTABLISHED 🎄
+              CONNECTION ESTABLISHED
             </div>
           )}
           {status === "lost" && (
             <div className="text-center">
               <div className="text-romance-gold mb-2 text-2xl font-bold">
-                💔 GLITCH DETECTED
+                GLITCH DETECTED
               </div>
               <div className="text-lg text-white/60">
                 Hearts Collected: {score}
@@ -223,20 +236,18 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
             </div>
           )}
 
-          {/* Action button */}
+          {/* Retry button */}
           <button
-            onClick={handleStartGame}
-            onTouchEnd={handleStartGame}
+            onClick={handleRetry}
+            onTouchEnd={handleRetry}
             className={`rounded-lg px-8 py-4 text-xl font-bold transition-transform hover:scale-105 active:scale-95 ${
               status === "won"
                 ? "bg-romance-gold text-midnight"
-                : status === "lost"
-                  ? "text-midnight bg-white"
-                  : "bg-terminal-green text-midnight"
+                : "text-midnight bg-white"
             }`}
             type="button"
           >
-            {status === "idle" ? getButtonText() : "TRY AGAIN"}
+            TRY AGAIN
           </button>
         </div>
       )}

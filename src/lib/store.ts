@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type GameStatus = "idle" | "playing" | "won" | "lost";
+export type GameStatus = "idle" | "countdown" | "playing" | "won" | "lost";
 
 interface GameState {
   score: number;
@@ -12,6 +12,7 @@ interface GameState {
   incrementScore: (amount: number) => void;
   setStatus: (status: GameStatus) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  startCountdown: () => void;
   triggerGameOver: () => void;
   triggerWin: () => void;
   toggleMute: () => void;
@@ -28,6 +29,7 @@ export const useGameStore = create<GameState>((set) => ({
   setStatus: (status) => set({ status }),
   setIsPlaying: (isPlaying) =>
     set({ isPlaying, status: isPlaying ? "playing" : "idle" }),
+  startCountdown: () => set({ status: "countdown", isPlaying: false }),
   triggerGameOver: () => set({ isPlaying: false, status: "lost" }),
   triggerWin: () => set({ isPlaying: false, status: "won" }),
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),

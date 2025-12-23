@@ -1,9 +1,10 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
+import { Game } from "@/components/features/game";
+import { BOOT_FADE_DURATION_MS } from "@/lib/constants";
 import { useAuthStore } from "@/lib/store";
 
 import { BootSequence } from "./BootSequence";
@@ -13,7 +14,7 @@ import { Keypad } from "./Keypad";
 import type { AuthStage } from "@/lib/store";
 import type { JSX } from "react";
 
-type FlowStage = "fingerprint" | "keypad" | "boot";
+type FlowStage = "fingerprint" | "keypad" | "boot" | "game";
 
 const emptySubscribe = (): (() => void) => {
   return () => {};
@@ -28,13 +29,17 @@ function useIsClient(): boolean {
 }
 
 export function AuthFlow(): JSX.Element {
-  const router = useRouter();
   const isClient = useIsClient();
   const authStage = useAuthStore((state) => state.authStage);
   const setAuthStage = useAuthStore((state) => state.setAuthStage);
+  const [isBootFading, setIsBootFading] = useState(false);
+  const [isBootComplete, setIsBootComplete] = useState(false);
 
   const getFlowStageFromAuth = (stage: AuthStage): FlowStage => {
-    if (stage === "BOOTING" || stage === "AUTHENTICATED") {
+    if (stage === "AUTHENTICATED") {
+      return "game";
+    }
+    if (stage === "BOOTING") {
       return "boot";
     }
     if (stage === "SCANNED") {
@@ -45,16 +50,6 @@ export function AuthFlow(): JSX.Element {
 
   const flowStage = getFlowStageFromAuth(authStage);
 
-  useEffect(() => {
-    if (!isClient) {
-      return;
-    }
-
-    if (authStage === "AUTHENTICATED") {
-      router.push("/game");
-    }
-  }, [authStage, isClient, router]);
-
   const handleScanComplete = useCallback((): void => {
     setAuthStage("SCANNED");
   }, [setAuthStage]);
@@ -63,8 +58,24 @@ export function AuthFlow(): JSX.Element {
     setAuthStage("BOOTING");
   }, [setAuthStage]);
 
+  // Handle boot sequence completion - start fade out
+  const handleBootComplete = useCallback((): void => {
+    setIsBootFading(true);
+
+    // After fade animation completes, mark boot as complete and update auth
+    setTimeout(() => {
+      setIsBootComplete(true);
+      setAuthStage("AUTHENTICATED");
+    }, BOOT_FADE_DURATION_MS);
+  }, [setAuthStage]);
+
   const getStageKey = (stage: AuthStage | FlowStage): string => {
-    if (stage === "BOOTING" || stage === "AUTHENTICATED" || stage === "boot") {
+    if (
+      stage === "BOOTING" ||
+      stage === "AUTHENTICATED" ||
+      stage === "boot" ||
+      stage === "game"
+    ) {
       return "boot";
     }
     if (stage === "SCANNED" || stage === "keypad") {
@@ -81,8 +92,32 @@ export function AuthFlow(): JSX.Element {
     );
   }
 
-  if (flowStage === "boot") {
-    return <BootSequence />;
+  // Boot/Game phase - Game is mounted behind BootSequence
+  if (flowStage === "boot" || flowStage === "game") {
+    return (
+      <div className="relative h-svh w-full overflow-hidden overscroll-none">
+        {/* Game layer - always mounted when in boot/game phase, starts behind boot */}
+        <div className="absolute inset-0 z-0">
+          <Game />
+        </div>
+
+        {/* Boot sequence overlay - fades out to reveal game */}
+        <AnimatePresence>
+          {!isBootComplete && (
+            <motion.div
+              key="boot-overlay"
+              initial={{ opacity: 1 }}
+              animate={{ opacity: isBootFading ? 0 : 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: BOOT_FADE_DURATION_MS / 1000 }}
+              className="bg-midnight absolute inset-0 z-10"
+            >
+              <BootSequence onComplete={handleBootComplete} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   }
 
   return (
