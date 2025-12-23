@@ -48,6 +48,17 @@ export const PARALLAX_SPEEDS = {
   GROUND: 1,
 } as const;
 
+// Entity spawner constants
+export const SPAWN_INTERVAL_MIN = 1500; // ms
+export const SPAWN_INTERVAL_MAX = 3000; // ms
+export const HEART_SPAWN_CHANCE = 0.7; // 70% hearts, 30% glitches
+export const ENTITY_WIDTH = 64;
+export const ENTITY_HEIGHT = 64;
+export const HITBOX_PADDING = 0.2; // 20% smaller hitbox for "fair" collisions
+
+// Win condition
+export const WIN_SCORE = 10;
+
 // Asset paths
 export const GAME_ASSETS = {
   SKY_BG: "/assets/game/sky_bg.png",
@@ -56,4 +67,6 @@ export const GAME_ASSETS = {
   CAROLINA_RUN: "/assets/characters/carolina_run.png",
   CAROLINA_JUMP: "/assets/characters/carolina_jump.png",
   CAROLINA_HIT: "/assets/characters/carolina_hit.png",
+  TOKEN_HEART: "/assets/game/token_heart.png",
+  OBSTACLE_GLITCH: "/assets/game/obstacle_glitch.png",
 } as const;

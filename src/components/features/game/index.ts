@@ -9,4 +9,15 @@ export {
   type ParallaxLayerProps,
   type ParallaxLayerRef,
 } from "./ParallaxLayer";
-export { Player, type PlayerProps, type PlayerRef } from "./Player";
+export {
+  Player,
+  type Hitbox,
+  type PlayerProps,
+  type PlayerRef,
+} from "./Player";
+export {
+  Spawner,
+  type EntityType,
+  type SpawnerProps,
+  type SpawnerRef,
+} from "./Spawner";
