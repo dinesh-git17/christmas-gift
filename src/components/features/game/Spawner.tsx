@@ -44,6 +44,7 @@ export interface SpawnerProps {
   containerWidth: number;
   containerHeight: number;
   getPlayerHitbox: () => Hitbox;
+  onCrash?: () => void;
 }
 
 export interface SpawnerRef {
@@ -82,8 +83,11 @@ function getRandomSpawnInterval(): number {
   );
 }
 
+// Delay before showing game over to let crash animation play
+const CRASH_ANIMATION_DELAY_MS = 500;
+
 export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
-  { containerWidth, containerHeight, getPlayerHitbox },
+  { containerWidth, containerHeight, getPlayerHitbox, onCrash },
   ref
 ) {
   // Entity list - use state for rendering, refs for positions
@@ -180,7 +184,7 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
       const playerHitbox = getPlayerHitbox();
       const entitiesToRemove: number[] = [];
       const collectedHearts: number[] = [];
-      let hitGlitch = false;
+      let hitGlitchId: number | null = null;
 
       entityPositionsRef.current.forEach((pos, id) => {
         // Move entity left at game speed
@@ -215,7 +219,7 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
             if (entity.type === "heart") {
               collectedHearts.push(id);
             } else {
-              hitGlitch = true;
+              hitGlitchId = id;
             }
           }
         }
@@ -246,10 +250,20 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
         }
       }
 
-      // Handle glitch hit (game over)
-      if (hitGlitch) {
+      // Handle glitch hit (game over with crash animation delay)
+      if (hitGlitchId !== null) {
+        // Hide the glitch that was hit
+        const glitchEl = entityRefsMap.current.get(hitGlitchId);
+        if (glitchEl) {
+          glitchEl.style.visibility = "hidden";
+        }
+
         playError();
-        triggerGameOver();
+        onCrash?.();
+        // Delay game over to let crash animation play
+        setTimeout(() => {
+          triggerGameOver();
+        }, CRASH_ANIMATION_DELAY_MS);
         return;
       }
 
@@ -269,6 +283,7 @@ export const Spawner = forwardRef<SpawnerRef, SpawnerProps>(function Spawner(
       entities,
       getPlayerHitbox,
       incrementScore,
+      onCrash,
       playCollect,
       playError,
       score,

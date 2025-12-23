@@ -48,6 +48,11 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
     return playerRef.current?.getHitbox() ?? DEFAULT_HITBOX;
   }, []);
 
+  // Handle crash animation when hitting a glitch
+  const handleCrash = useCallback(() => {
+    playerRef.current?.crash();
+  }, []);
+
   // Game loop callback
   const gameLoopCallback = useCallback(
     (deltaTime: number): void => {
@@ -181,6 +186,7 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
               containerWidth={containerWidth}
               containerHeight={containerHeight}
               getPlayerHitbox={getPlayerHitbox}
+              onCrash={handleCrash}
             />
           </>
         )}
