@@ -19,6 +19,8 @@ import {
   PLAYER_HEIGHT,
   PLAYER_WIDTH,
   PLAYER_X_PERCENT,
+  RUN_FRAME_COUNT,
+  RUN_FRAME_DURATION_MS,
 } from "@/lib/constants";
 
 export interface Hitbox {
@@ -51,9 +53,13 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
   ref
 ) {
   const playerRef = useRef<HTMLDivElement>(null);
-  const runSpriteRef = useRef<HTMLImageElement>(null);
+  const runFramesRefs = useRef<(HTMLImageElement | null)[]>([]);
   const jumpSpriteRef = useRef<HTMLImageElement>(null);
   const hitSpriteRef = useRef<HTMLImageElement>(null);
+
+  // Frame animation state (refs to avoid re-renders)
+  const currentFrameRef = useRef(0);
+  const frameTimerRef = useRef(0);
 
   // Calculate X position as percentage of container width (positioned on right, facing left)
   const playerX = Math.floor(containerWidth * PLAYER_X_PERCENT);
@@ -88,29 +94,39 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
   }, [containerHeight]);
 
   // Switch sprites using CSS visibility (no image decode lag)
-  const updateSprite = useCallback((state: PlayerState): void => {
-    if (
-      !runSpriteRef.current ||
-      !jumpSpriteRef.current ||
-      !hitSpriteRef.current
-    ) {
-      return;
-    }
+  const updateSprite = useCallback(
+    (state: PlayerState, frameIndex?: number): void => {
+      if (!jumpSpriteRef.current || !hitSpriteRef.current) {
+        return;
+      }
 
-    // Hide all sprites first
-    runSpriteRef.current.style.visibility = "hidden";
-    jumpSpriteRef.current.style.visibility = "hidden";
-    hitSpriteRef.current.style.visibility = "hidden";
+      // Hide jump and hit sprites first
+      jumpSpriteRef.current.style.visibility = "hidden";
+      hitSpriteRef.current.style.visibility = "hidden";
 
-    // Show the appropriate sprite
-    if (state === "crashed") {
-      hitSpriteRef.current.style.visibility = "visible";
-    } else if (state === "jumping") {
-      jumpSpriteRef.current.style.visibility = "visible";
-    } else {
-      runSpriteRef.current.style.visibility = "visible";
-    }
-  }, []);
+      // Hide all run frames
+      runFramesRefs.current.forEach((frame) => {
+        if (frame) {
+          frame.style.visibility = "hidden";
+        }
+      });
+
+      // Show the appropriate sprite
+      if (state === "crashed") {
+        hitSpriteRef.current.style.visibility = "visible";
+      } else if (state === "jumping") {
+        jumpSpriteRef.current.style.visibility = "visible";
+      } else {
+        // Show the current run frame
+        const index = frameIndex ?? currentFrameRef.current;
+        const currentFrame = runFramesRefs.current[index];
+        if (currentFrame) {
+          currentFrame.style.visibility = "visible";
+        }
+      }
+    },
+    []
+  );
 
   const jump = useCallback((): void => {
     if (isGroundedRef.current) {
@@ -144,7 +160,22 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
         if (!isGroundedRef.current) {
           isGroundedRef.current = true;
           stateRef.current = "running";
-          updateSprite("running");
+          currentFrameRef.current = 0;
+          frameTimerRef.current = 0;
+          updateSprite("running", 0);
+        }
+      }
+
+      // Frame animation logic (only when running)
+      if (stateRef.current === "running") {
+        // deltaTime is in seconds, accumulate in milliseconds
+        frameTimerRef.current += deltaTime * 1000;
+
+        if (frameTimerRef.current >= RUN_FRAME_DURATION_MS) {
+          frameTimerRef.current = 0;
+          currentFrameRef.current =
+            (currentFrameRef.current + 1) % RUN_FRAME_COUNT;
+          updateSprite("running", currentFrameRef.current);
         }
       }
 
@@ -159,7 +190,9 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
     velocityRef.current = { x: 0, y: 0 };
     isGroundedRef.current = true;
     stateRef.current = "running";
-    updateSprite("running");
+    currentFrameRef.current = 0;
+    frameTimerRef.current = 0;
+    updateSprite("running", 0);
 
     if (playerRef.current) {
       playerRef.current.style.transform = `translate3d(0, ${floorYRef.current}px, 0)`;
@@ -234,17 +267,22 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
         willChange: "transform",
       }}
     >
-      {/* Both sprites preloaded, switch via CSS visibility for zero-lag */}
-      {/* Flipped with scaleX(-1) to face left */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance */}
-      <img
-        ref={runSpriteRef}
-        src={GAME_ASSETS.CAROLINA_RUN}
-        alt="Carolina running"
-        className="absolute inset-0 h-full w-full object-contain"
-        style={{ transform: "scaleX(-1)" }}
-        draggable={false}
-      />
+      {/* All 4 run frames preloaded, stacked on top of each other */}
+      {/* Switch via CSS visibility for zero-lag animation */}
+      {GAME_ASSETS.CAROLINA_RUN_FRAMES.map((src, index) => (
+        // eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance
+        <img
+          key={src}
+          ref={(el) => {
+            runFramesRefs.current[index] = el;
+          }}
+          src={src}
+          alt={`Carolina running frame ${index + 1}`}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ visibility: index === 0 ? "visible" : "hidden" }}
+          draggable={false}
+        />
+      ))}
       {/* eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance */}
       <img
         ref={jumpSpriteRef}
@@ -260,7 +298,7 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
         src={GAME_ASSETS.CAROLINA_HIT}
         alt="Carolina hit"
         className="absolute inset-0 h-full w-full object-contain"
-        style={{ visibility: "hidden", transform: "scaleX(-1)" }}
+        style={{ visibility: "hidden" }}
         draggable={false}
       />
     </div>
