@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import type { JSX, ReactNode } from "react";
 
-// Room-specific theme color to match the warm gradient background
-// iOS 26+ uses this for Safari's tab tinting / safe area coloring
+// Room-specific theme color to match the warm gradient background edge
+// iOS 26+ uses body background for Safari's safe area coloring
 export const viewport: Viewport = {
-  themeColor: "#1a0d08",
+  themeColor: "#0a0404",
 };
 
 export const metadata: Metadata = {

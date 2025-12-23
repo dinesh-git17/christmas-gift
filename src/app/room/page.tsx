@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import {
   RoomScene,
@@ -16,10 +16,25 @@ import { AUDIO_PATHS, ROOM_SCRIPT, ROOM_TIMING } from "@/lib/constants";
 
 import type { JSX } from "react";
 
+// Room background color for iOS Safari safe area (matches gradient edge)
+const ROOM_BG_COLOR = "#0a0404";
+
 export default function RoomPage(): JSX.Element {
   const [hasStarted, setHasStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState<SceneStep>(0);
   const [showLetter, setShowLetter] = useState(false);
+
+  // Set body background for iOS Safari safe area coloring
+  useEffect(() => {
+    const originalBg = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = ROOM_BG_COLOR;
+    document.documentElement.style.backgroundColor = ROOM_BG_COLOR;
+
+    return (): void => {
+      document.body.style.backgroundColor = originalBg;
+      document.documentElement.style.backgroundColor = originalBg;
+    };
+  }, []);
 
   const lofiMusic = useAudio(AUDIO_PATHS.LOFI_CHRISTMAS, {
     loop: true,
