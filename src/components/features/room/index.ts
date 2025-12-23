@@ -6,3 +6,5 @@ export { SnowOverlay } from "./SnowOverlay";
 export type { SnowOverlayProps } from "./SnowOverlay";
 export { LetterView } from "./LetterView";
 export type { LetterViewProps } from "./LetterView";
+export { ChoiceMenu } from "./ChoiceMenu";
+export type { ChoiceMenuProps } from "./ChoiceMenu";

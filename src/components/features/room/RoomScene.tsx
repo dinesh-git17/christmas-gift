@@ -2,10 +2,12 @@
 
 /* eslint-disable @next/next/no-img-element -- Room sprites require precise positioning with percentage-based absolute layout */
 
-import { motion, type Variants } from "framer-motion";
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 
-import { ROOM_ASSETS } from "@/lib/constants";
+import { useAudio } from "@/hooks/use-audio";
+import { AUDIO_PATHS, ROOM_ASSETS } from "@/lib/constants";
 
 import type { JSX } from "react";
 
@@ -74,16 +76,25 @@ export interface RoomSceneProps {
   className?: string;
   onStepChange?: (step: SceneStep) => void;
   onDinnClick?: () => void;
+  hasReadLetter?: boolean;
+  hasUnlockedGame?: boolean;
+  isLetterOpen?: boolean;
 }
 
 export function RoomScene({
   className = "",
   onStepChange,
   onDinnClick,
+  hasReadLetter = false,
+  hasUnlockedGame = false,
+  isLetterOpen = false,
 }: RoomSceneProps): JSX.Element {
   const [animationPhase, setAnimationPhase] = useState<
     "waiting" | "entering" | "walking" | "together" | "interactive"
   >("waiting");
+
+  // Confetti celebration sound
+  const confettiSound = useAudio(AUDIO_PATHS.COLLECT, { volume: 0.5 });
 
   const advanceStep = useCallback(
     (newStep: SceneStep): void => {
@@ -143,11 +154,42 @@ export function RoomScene({
 
   const handleDinnClick = useCallback((): void => {
     if (animationPhase === "interactive") {
+      // Parent handles routing based on hasReadLetter and hasUnlockedGame
       onDinnClick?.();
     }
   }, [animationPhase, onDinnClick]);
 
+  // Carolina confetti celebration - triggers when sitting together
+  const handleCarolinaClick = useCallback(
+    (e: React.MouseEvent): void => {
+      const isClickable =
+        animationPhase === "together" || animationPhase === "interactive";
+      if (!isClickable) {
+        return;
+      }
+
+      e.stopPropagation();
+      confettiSound.play();
+
+      // Fire confetti from click coordinates (normalized 0-1)
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+
+      confetti({
+        particleCount: 40,
+        spread: 70,
+        origin: { x, y },
+        colors: ["#00ff41", "#ef4444", "#ffffff"],
+        disableForReducedMotion: true,
+        zIndex: 100,
+      });
+    },
+    [animationPhase, confettiSound]
+  );
+
   const isDinnInteractive = animationPhase === "interactive";
+  const isCarolinaInteractive =
+    animationPhase === "together" || animationPhase === "interactive";
 
   return (
     <motion.div
@@ -217,19 +259,40 @@ export function RoomScene({
             className="h-auto w-full object-contain"
             draggable={false}
           />
+
+          {/* "Encore" Bubble - Only shows after reading the letter */}
+          <AnimatePresence>
+            {hasReadLetter && !isLetterOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+                className="text-midnight absolute -top-14 left-1/2 -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-sm font-bold whitespace-nowrap shadow-xl"
+                onClick={handleDinnClick}
+              >
+                {hasUnlockedGame
+                  ? "Tap for memories! 💭"
+                  : "Psst... one more surprise! 🎁"}
+                {/* Arrow pointing down */}
+                <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-white" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Layer 2: Carolina - starts at tree, walks to couch (left pillow) */}
         <motion.img
           src={ROOM_ASSETS.CAROLINA}
           alt="Carolina"
-          className="absolute h-auto w-[12%] origin-bottom object-contain"
+          className={`absolute h-auto w-[12%] origin-bottom object-contain ${isCarolinaInteractive ? "cursor-pointer hover:brightness-110" : ""}`}
           style={{
             zIndex: 10,
             top: "42%",
             left: "36%",
             scaleX: -1,
           }}
+          onClick={handleCarolinaClick}
           variants={carolinaVariants}
           initial="initial"
           animate={
