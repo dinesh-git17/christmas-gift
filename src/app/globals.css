@@ -23,6 +23,9 @@
   --color-neon-green-dim: rgba(0, 255, 65, 0.5);
   --color-neon-glow: rgba(0, 255, 65, 0.3);
 
+  /* Terminal red (error theme) */
+  --color-terminal-red: #ff0033;
+
   /* Typography */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -63,4 +66,33 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-brand-glass);
+}
+
+/* Glitch text effect for error screens */
+.text-glitch {
+  text-shadow:
+    2px 0 var(--color-terminal-red),
+    -2px 0 var(--color-terminal-green);
+  animation: glitch-skew 1s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-skew {
+  0% {
+    transform: skewX(0deg);
+  }
+  20% {
+    transform: skewX(-2deg);
+  }
+  40% {
+    transform: skewX(2deg);
+  }
+  60% {
+    transform: skewX(-1deg);
+  }
+  80% {
+    transform: skewX(1deg);
+  }
+  100% {
+    transform: skewX(0deg);
+  }
 }
