@@ -14,11 +14,19 @@ import {
   FLOOR_Y_PERCENT,
   GAME_ASSETS,
   GRAVITY,
+  HITBOX_PADDING,
   JUMP_FORCE,
   PLAYER_HEIGHT,
   PLAYER_WIDTH,
   PLAYER_X_PERCENT,
 } from "@/lib/constants";
+
+export interface Hitbox {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
 export interface PlayerProps {
   containerHeight: number;
@@ -31,6 +39,7 @@ export interface PlayerRef {
   jump: () => void;
   reset: () => void;
   getPosition: () => { x: number; y: number };
+  getHitbox: () => Hitbox;
   isGrounded: () => boolean;
 }
 
@@ -145,11 +154,25 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
     }
   }, [updateSprite, playerX]);
 
+  // Calculate hitbox with padding for fair collisions
+  const getHitbox = useCallback((): Hitbox => {
+    const paddingX = PLAYER_WIDTH * HITBOX_PADDING;
+    const paddingY = PLAYER_HEIGHT * HITBOX_PADDING;
+
+    return {
+      left: playerX + paddingX,
+      right: playerX + PLAYER_WIDTH - paddingX,
+      top: positionRef.current.y + paddingY,
+      bottom: positionRef.current.y + PLAYER_HEIGHT - paddingY,
+    };
+  }, [playerX]);
+
   useImperativeHandle(ref, () => ({
     update,
     jump,
     reset,
     getPosition: () => ({ ...positionRef.current }),
+    getHitbox,
     isGrounded: () => isGroundedRef.current,
   }));
 
