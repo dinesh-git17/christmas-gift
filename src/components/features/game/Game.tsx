@@ -8,7 +8,9 @@ import { useGameStore } from "@/lib/store";
 
 import { Countdown } from "./Countdown";
 import { GameCanvas, type GameCanvasRef } from "./GameCanvas";
+import { GameOverScreen } from "./GameOverScreen";
 import { MissionBriefing } from "./MissionBriefing";
+import { MissionSuccess } from "./MissionSuccess";
 import { Player, type PlayerRef } from "./Player";
 import { Spawner, type SpawnerRef } from "./Spawner";
 
@@ -224,40 +226,12 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
         <Countdown onComplete={handleCountdownComplete} />
       )}
 
-      {/* Game Over/Win overlay */}
-      {(status === "won" || status === "lost") && (
-        <div className="bg-midnight/80 absolute inset-0 z-50 flex flex-col items-center justify-center gap-6">
-          {/* Status message */}
-          {status === "won" && (
-            <div className="text-terminal-green animate-pulse text-center text-2xl font-bold">
-              CONNECTION ESTABLISHED
-            </div>
-          )}
-          {status === "lost" && (
-            <div className="text-center">
-              <div className="text-romance-gold mb-2 text-2xl font-bold">
-                GLITCH DETECTED
-              </div>
-              <div className="text-lg text-white/60">
-                Hearts Collected: {score}
-              </div>
-            </div>
-          )}
+      {/* Mission Success Screen */}
+      {status === "won" && <MissionSuccess score={score} />}
 
-          {/* Retry button */}
-          <button
-            onClick={handleRetry}
-            onTouchEnd={handleRetry}
-            className={`rounded-lg px-8 py-4 text-xl font-bold transition-transform hover:scale-105 active:scale-95 ${
-              status === "won"
-                ? "bg-romance-gold text-midnight"
-                : "text-midnight bg-white"
-            }`}
-            type="button"
-          >
-            TRY AGAIN
-          </button>
-        </div>
+      {/* Game Over Screen */}
+      {status === "lost" && (
+        <GameOverScreen score={score} onReboot={handleRetry} />
       )}
     </div>
   );
