@@ -23,6 +23,7 @@ export default function RoomPage(): JSX.Element {
   const [hasStarted, setHasStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState<SceneStep>(0);
   const [showLetter, setShowLetter] = useState(false);
+  const [hasReadLetter, setHasReadLetter] = useState(false);
 
   // Set body background for iOS Safari safe area coloring
   useEffect(() => {
@@ -55,14 +56,22 @@ export default function RoomPage(): JSX.Element {
     }
   }, [hasStarted, lofiMusic]);
 
-  // Handle Dinn click - show letter
+  // Handle Dinn click - behavior depends on letter read state
   const handleDinnClick = useCallback((): void => {
-    setShowLetter(true);
-  }, []);
+    if (!hasReadLetter) {
+      setShowLetter(true);
+    }
+  }, [hasReadLetter]);
 
-  // Handle letter close
+  // Handle letter close - marks letter as read
   const handleLetterClose = useCallback((): void => {
     setShowLetter(false);
+    setHasReadLetter(true);
+  }, []);
+
+  // Handle bonus game start (Encore feature)
+  const handleBonusGameStart = useCallback((): void => {
+    // TODO: Navigate to matching game (next story)
   }, []);
 
   // Get current subtitle text based on step
@@ -137,6 +146,9 @@ export default function RoomPage(): JSX.Element {
           <RoomScene
             onStepChange={handleStepChange}
             onDinnClick={handleDinnClick}
+            onBonusGameStart={handleBonusGameStart}
+            hasReadLetter={hasReadLetter}
+            isLetterOpen={showLetter}
           />
 
           {/* Cinematic subtitle overlay */}

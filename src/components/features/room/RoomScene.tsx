@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- Room sprites require precise positioning with percentage-based absolute layout */
 
-import { motion, type Variants } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 
 import { ROOM_ASSETS } from "@/lib/constants";
@@ -74,12 +74,18 @@ export interface RoomSceneProps {
   className?: string;
   onStepChange?: (step: SceneStep) => void;
   onDinnClick?: () => void;
+  onBonusGameStart?: () => void;
+  hasReadLetter?: boolean;
+  isLetterOpen?: boolean;
 }
 
 export function RoomScene({
   className = "",
   onStepChange,
   onDinnClick,
+  onBonusGameStart,
+  hasReadLetter = false,
+  isLetterOpen = false,
 }: RoomSceneProps): JSX.Element {
   const [animationPhase, setAnimationPhase] = useState<
     "waiting" | "entering" | "walking" | "together" | "interactive"
@@ -143,9 +149,13 @@ export function RoomScene({
 
   const handleDinnClick = useCallback((): void => {
     if (animationPhase === "interactive") {
-      onDinnClick?.();
+      if (hasReadLetter) {
+        onBonusGameStart?.();
+      } else {
+        onDinnClick?.();
+      }
     }
-  }, [animationPhase, onDinnClick]);
+  }, [animationPhase, hasReadLetter, onDinnClick, onBonusGameStart]);
 
   const isDinnInteractive = animationPhase === "interactive";
 
@@ -217,6 +227,24 @@ export function RoomScene({
             className="h-auto w-full object-contain"
             draggable={false}
           />
+
+          {/* "Encore" Bubble - Only shows after reading the letter */}
+          <AnimatePresence>
+            {hasReadLetter && !isLetterOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+                className="text-midnight absolute -top-14 left-1/2 -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-sm font-bold whitespace-nowrap shadow-xl"
+                onClick={handleDinnClick}
+              >
+                Psst... one more surprise! 🎁
+                {/* Arrow pointing down */}
+                <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-white" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Layer 2: Carolina - starts at tree, walks to couch (left pillow) */}
