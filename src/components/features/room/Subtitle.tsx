@@ -16,7 +16,7 @@ export interface SubtitleProps {
 export function Subtitle({ text, className = "" }: SubtitleProps): JSX.Element {
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-16 flex items-center justify-center px-4 sm:bottom-24 ${className}`}
+      className={`pointer-events-none absolute inset-x-0 bottom-28 flex items-center justify-center px-4 sm:bottom-36 ${className}`}
     >
       <AnimatePresence mode="wait">
         {text && (
