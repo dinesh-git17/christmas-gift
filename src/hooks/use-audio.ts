@@ -18,8 +18,11 @@ interface UseAudioReturn {
 
 // Shared AudioContext for all sounds (iOS Safari prefers 44100 sample rate)
 let sharedAudioContext: AudioContext | null = null;
+// Track raw audio data waiting to be decoded
+const rawAudioCache = new Map<string, ArrayBuffer>();
 
-function getAudioContext(): AudioContext {
+// Create and resume AudioContext - MUST be called during user gesture on iOS Safari
+function initAudioContext(): AudioContext {
   if (!sharedAudioContext) {
     const AudioContextClass =
       window.AudioContext ||
@@ -28,17 +31,14 @@ function getAudioContext(): AudioContext {
     // iOS Safari performs better with 44100 sample rate
     sharedAudioContext = new AudioContextClass({ sampleRate: 44100 });
   }
-  return sharedAudioContext;
-}
 
-// Resume AudioContext on user interaction (required by browsers)
-function ensureAudioContextResumed(): void {
-  const ctx = getAudioContext();
-  if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {
-      // Ignore resume errors
-    });
+  // Resume if suspended (must happen in same call stack as user gesture)
+  if (sharedAudioContext.state === "suspended") {
+    // Use void to handle promise without await (gesture must be sync)
+    void sharedAudioContext.resume();
   }
+
+  return sharedAudioContext;
 }
 
 export function useAudio(
@@ -49,34 +49,36 @@ export function useAudio(
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
-  const isLoadedRef = useRef(false);
+  const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isDecodingRef = useRef(false);
   const isMuted = useGameStore((state) => state.isMuted);
 
-  // Preload and decode audio buffer on mount
+  // Pre-fetch raw audio data on mount (doesn't need AudioContext)
   useEffect(() => {
-    let isCancelled = false;
+    const prefetchAudio = async (): Promise<void> => {
+      if (rawAudioCache.has(src)) {
+        return;
+      }
 
-    const loadAudio = async (): Promise<void> => {
       try {
-        const ctx = getAudioContext();
         const response = await fetch(src);
         const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-        if (!isCancelled) {
-          audioBufferRef.current = audioBuffer;
-          isLoadedRef.current = true;
-        }
+        rawAudioCache.set(src, arrayBuffer);
       } catch {
-        // Fallback: buffer failed to load, play will be silent
+        // Fetch failed, will use fallback
       }
     };
 
-    loadAudio();
+    void prefetchAudio();
+
+    // Also create fallback HTML Audio element for iOS Safari first play
+    fallbackAudioRef.current = new Audio(src);
+    fallbackAudioRef.current.preload = "auto";
+    fallbackAudioRef.current.loop = loop;
+    fallbackAudioRef.current.volume = volume;
 
     return (): void => {
-      isCancelled = true;
-      // Stop any playing source
+      // Stop any playing source on unmount
       if (sourceNodeRef.current) {
         try {
           sourceNodeRef.current.stop();
@@ -85,21 +87,75 @@ export function useAudio(
         }
         sourceNodeRef.current = null;
       }
+      if (fallbackAudioRef.current) {
+        fallbackAudioRef.current.pause();
+        fallbackAudioRef.current = null;
+      }
     };
-  }, [src]);
+  }, [src, loop, volume]);
 
-  const preload = useCallback((): void => {
-    // Ensure AudioContext is resumed on user interaction
-    ensureAudioContextResumed();
-  }, []);
-
-  const play = useCallback((): void => {
-    if (!audioBufferRef.current || isMuted) {
+  // Decode raw audio data into AudioBuffer
+  const decodeAudioBuffer = useCallback(async (): Promise<void> => {
+    if (
+      audioBufferRef.current ||
+      isDecodingRef.current ||
+      !sharedAudioContext
+    ) {
       return;
     }
 
-    ensureAudioContextResumed();
-    const ctx = getAudioContext();
+    const rawData = rawAudioCache.get(src);
+    if (!rawData) {
+      return;
+    }
+
+    isDecodingRef.current = true;
+
+    try {
+      // Clone the ArrayBuffer since decodeAudioData detaches it
+      const clonedData = rawData.slice(0);
+      const audioBuffer = await sharedAudioContext.decodeAudioData(clonedData);
+      audioBufferRef.current = audioBuffer;
+    } catch {
+      // Decode failed, will continue using fallback
+    } finally {
+      isDecodingRef.current = false;
+    }
+  }, [src]);
+
+  const preload = useCallback((): void => {
+    // Initialize AudioContext on user gesture - this unlocks audio on iOS Safari
+    initAudioContext();
+    void decodeAudioBuffer();
+  }, [decodeAudioBuffer]);
+
+  const play = useCallback((): void => {
+    if (isMuted) {
+      return;
+    }
+
+    // Initialize AudioContext on user gesture - this is the key fix for iOS Safari
+    const ctx = initAudioContext();
+
+    // Start decoding if not already done
+    void decodeAudioBuffer();
+
+    // If buffer not ready yet, use HTML Audio fallback (works on first touch)
+    if (!audioBufferRef.current) {
+      if (fallbackAudioRef.current) {
+        fallbackAudioRef.current.currentTime = 0;
+        void fallbackAudioRef.current.play().catch(() => {
+          // Fallback play failed, ignore
+        });
+      }
+      return;
+    }
+
+    // Stop fallback if it was playing
+    if (fallbackAudioRef.current) {
+      fallbackAudioRef.current.pause();
+      fallbackAudioRef.current.currentTime = 0;
+    }
 
     // Create new source node for each play (required by Web Audio API)
     const source = ctx.createBufferSource();
@@ -127,7 +183,7 @@ export function useAudio(
         sourceNodeRef.current = null;
       };
     }
-  }, [isMuted, loop, volume]);
+  }, [isMuted, loop, volume, decodeAudioBuffer]);
 
   const pause = useCallback((): void => {
     // Web Audio API doesn't have pause - must stop and recreate
@@ -139,6 +195,10 @@ export function useAudio(
       }
       sourceNodeRef.current = null;
     }
+    // Also pause fallback audio
+    if (fallbackAudioRef.current) {
+      fallbackAudioRef.current.pause();
+    }
   }, []);
 
   const stop = useCallback((): void => {
@@ -149,6 +209,11 @@ export function useAudio(
         // Ignore if already stopped
       }
       sourceNodeRef.current = null;
+    }
+    // Also stop fallback audio
+    if (fallbackAudioRef.current) {
+      fallbackAudioRef.current.pause();
+      fallbackAudioRef.current.currentTime = 0;
     }
   }, []);
 
