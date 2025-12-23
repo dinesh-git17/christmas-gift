@@ -3,12 +3,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
+import { useAudio } from "@/hooks";
 import {
   AUDIO_PATHS,
   COUNTDOWN_INTERVAL_MS,
   COUNTDOWN_STEPS,
 } from "@/lib/constants";
-import { useGameStore } from "@/lib/store";
 
 import type { JSX } from "react";
 
@@ -20,32 +20,26 @@ export function Countdown({ onComplete }: CountdownProps): JSX.Element {
   const [currentStep, setCurrentStep] = useState(0);
   const hasCompletedRef = useRef(false);
   const hasPlayedAudioRef = useRef(false);
-  const isMuted = useGameStore((state) => state.isMuted);
 
-  // Audio ref
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Use the audio hook for proper iOS Safari support
+  const { play: playCountdown, stop: stopCountdown } = useAudio(
+    AUDIO_PATHS.COUNTDOWN,
+    { volume: 0.5 }
+  );
 
-  // Initialize and play countdown audio once on mount
+  // Play countdown audio once on mount
   useEffect(() => {
-    if (hasPlayedAudioRef.current || isMuted) {
+    if (hasPlayedAudioRef.current) {
       return;
     }
 
-    audioRef.current = new Audio(AUDIO_PATHS.COUNTDOWN);
-    audioRef.current.volume = 0.5;
-
-    audioRef.current.play().catch(() => {
-      // Ignore audio play errors
-    });
     hasPlayedAudioRef.current = true;
+    playCountdown();
 
     return (): void => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopCountdown();
     };
-  }, [isMuted]);
+  }, [playCountdown, stopCountdown]);
 
   // Progress through countdown steps
   useEffect(() => {
