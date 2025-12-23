@@ -38,12 +38,13 @@ export interface PlayerRef {
   update: (deltaTime: number) => void;
   jump: () => void;
   reset: () => void;
+  crash: () => void;
   getPosition: () => { x: number; y: number };
   getHitbox: () => Hitbox;
   isGrounded: () => boolean;
 }
 
-type PlayerState = "running" | "jumping";
+type PlayerState = "running" | "jumping" | "crashed";
 
 export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
   { containerHeight, containerWidth, onJump },
@@ -52,6 +53,7 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
   const playerRef = useRef<HTMLDivElement>(null);
   const runSpriteRef = useRef<HTMLImageElement>(null);
   const jumpSpriteRef = useRef<HTMLImageElement>(null);
+  const hitSpriteRef = useRef<HTMLImageElement>(null);
 
   // Calculate X position as percentage of container width (positioned on right, facing left)
   const playerX = Math.floor(containerWidth * PLAYER_X_PERCENT);
@@ -87,16 +89,26 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
 
   // Switch sprites using CSS visibility (no image decode lag)
   const updateSprite = useCallback((state: PlayerState): void => {
-    if (!runSpriteRef.current || !jumpSpriteRef.current) {
+    if (
+      !runSpriteRef.current ||
+      !jumpSpriteRef.current ||
+      !hitSpriteRef.current
+    ) {
       return;
     }
 
-    if (state === "jumping") {
-      runSpriteRef.current.style.visibility = "hidden";
+    // Hide all sprites first
+    runSpriteRef.current.style.visibility = "hidden";
+    jumpSpriteRef.current.style.visibility = "hidden";
+    hitSpriteRef.current.style.visibility = "hidden";
+
+    // Show the appropriate sprite
+    if (state === "crashed") {
+      hitSpriteRef.current.style.visibility = "visible";
+    } else if (state === "jumping") {
       jumpSpriteRef.current.style.visibility = "visible";
     } else {
       runSpriteRef.current.style.visibility = "visible";
-      jumpSpriteRef.current.style.visibility = "hidden";
     }
   }, []);
 
@@ -154,6 +166,29 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
     }
   }, [updateSprite, playerX]);
 
+  // Crash animation when hitting a glitch
+  const crash = useCallback((): void => {
+    stateRef.current = "crashed";
+    updateSprite("crashed");
+
+    // Apply a small shake animation
+    if (playerRef.current) {
+      playerRef.current.animate(
+        [
+          { transform: `translate3d(-4px, ${positionRef.current.y}px, 0)` },
+          { transform: `translate3d(4px, ${positionRef.current.y}px, 0)` },
+          { transform: `translate3d(-4px, ${positionRef.current.y}px, 0)` },
+          { transform: `translate3d(4px, ${positionRef.current.y}px, 0)` },
+          { transform: `translate3d(0, ${positionRef.current.y}px, 0)` },
+        ],
+        {
+          duration: 300,
+          easing: "ease-out",
+        }
+      );
+    }
+  }, [updateSprite]);
+
   // Calculate hitbox with padding for fair collisions
   const getHitbox = useCallback((): Hitbox => {
     const paddingX = PLAYER_WIDTH * HITBOX_PADDING;
@@ -171,6 +206,7 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
     update,
     jump,
     reset,
+    crash,
     getPosition: () => ({ ...positionRef.current }),
     getHitbox,
     isGrounded: () => isGroundedRef.current,
@@ -214,6 +250,15 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
         ref={jumpSpriteRef}
         src={GAME_ASSETS.CAROLINA_JUMP}
         alt="Carolina jumping"
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{ visibility: "hidden", transform: "scaleX(-1)" }}
+        draggable={false}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance */}
+      <img
+        ref={hitSpriteRef}
+        src={GAME_ASSETS.CAROLINA_HIT}
+        alt="Carolina hit"
         className="absolute inset-0 h-full w-full object-contain"
         style={{ visibility: "hidden", transform: "scaleX(-1)" }}
         draggable={false}
