@@ -162,8 +162,14 @@ export function MissionBriefing({
         >
           {/* Objective */}
           <div className="flex items-center gap-3">
-            <div className="text-romance-gold flex h-8 w-8 shrink-0 items-center justify-center text-xl">
-              ❤️
+            <div className="relative h-8 w-8 shrink-0">
+              <Image
+                src="/assets/game/token_heart.png"
+                alt="Heart"
+                fill
+                className="object-contain"
+                unoptimized
+              />
             </div>
             <div>
               <div className="text-terminal-green/60 font-mono text-xs uppercase">
@@ -177,8 +183,14 @@ export function MissionBriefing({
 
           {/* Hazard */}
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center text-xl">
-              ⚡
+            <div className="relative h-8 w-8 shrink-0">
+              <Image
+                src="/assets/game/obstacle_glitch.png"
+                alt="Glitch"
+                fill
+                className="object-contain"
+                unoptimized
+              />
             </div>
             <div>
               <div className="font-mono text-xs text-red-400/80 uppercase">
