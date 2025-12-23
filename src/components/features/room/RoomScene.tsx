@@ -23,7 +23,7 @@ export interface RoomSceneProps {
 export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
   return (
     <div
-      className={`relative left-1/2 w-[130vw] -translate-x-[39%] ${className}`}
+      className={`relative left-1/2 w-[150vw] -translate-x-[36%] ${className}`}
     >
       {/* Room container */}
       <div className="relative">
@@ -43,7 +43,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           style={{
             zIndex: 10,
             top: "38%",
-            left: "41%",
+            left: "44%",
           }}
           animate={breatheAnimation}
           transition={{
