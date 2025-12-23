@@ -1,0 +1,17 @@
+# Code Owners
+# This file defines individuals or teams that are responsible for code in this repository.
+# Code owners are automatically requested for review when someone opens a pull request
+# that modifies code that they own.
+
+# Global ownership - dinesh-git17 owns everything by default
+* @dinesh-git17
+
+# Workflows ownership - ensure CI/CD changes are reviewed
+/.github/ @dinesh-git17
+
+# Configuration files
+*.json @dinesh-git17
+*.config.* @dinesh-git17
+*.config.js @dinesh-git17
+*.config.ts @dinesh-git17
+*.config.mjs @dinesh-git17

@@ -1,0 +1,95 @@
+name: PR Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-assign:
+    name: Auto Assign
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign PR to codeowner
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: ['dinesh-git17']
+            });
+
+  auto-label:
+    name: Auto Label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Label PR based on files changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const labels = new Set();
+            const branch = context.payload.pull_request.head.ref;
+
+            // Label based on branch prefix
+            if (branch.startsWith('feature/')) labels.add('feature');
+            if (branch.startsWith('fix/')) labels.add('bug');
+            if (branch.startsWith('hotfix/')) labels.add('hotfix');
+            if (branch.startsWith('perf/')) labels.add('performance');
+            if (branch.startsWith('a11y/')) labels.add('accessibility');
+            if (branch.startsWith('refactor/')) labels.add('refactor');
+            if (branch.startsWith('chore/')) labels.add('chore');
+            if (branch.startsWith('assets/')) labels.add('assets');
+
+            // Label based on files changed
+            for (const file of files) {
+              const path = file.filename;
+
+              if (path.startsWith('src/components/') || path.startsWith('components/')) {
+                labels.add('ui');
+              }
+              if (path.startsWith('.github/workflows/')) {
+                labels.add('ci');
+              }
+              if (path.startsWith('.github/')) {
+                labels.add('github');
+              }
+              if (path.endsWith('.md')) {
+                labels.add('documentation');
+              }
+              if (path.startsWith('e2e/') || path.includes('.test.') || path.includes('.spec.')) {
+                labels.add('tests');
+              }
+              if (path.includes('config') || path === 'package.json' || path === 'tsconfig.json') {
+                labels.add('config');
+              }
+              if (path.startsWith('public/assets/')) {
+                labels.add('assets');
+              }
+              if (path.includes('/game/') || path.includes('game')) {
+                labels.add('game');
+              }
+            }
+
+            // Apply labels if any were detected
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [...labels]
+              });
+            }
