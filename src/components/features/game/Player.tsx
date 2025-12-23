@@ -17,11 +17,12 @@ import {
   JUMP_FORCE,
   PLAYER_HEIGHT,
   PLAYER_WIDTH,
-  PLAYER_X_POSITION,
+  PLAYER_X_PERCENT,
 } from "@/lib/constants";
 
 export interface PlayerProps {
   containerHeight: number;
+  containerWidth: number;
   onJump?: () => void;
 }
 
@@ -36,14 +37,18 @@ export interface PlayerRef {
 type PlayerState = "running" | "jumping";
 
 export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
-  { containerHeight, onJump },
+  { containerHeight, containerWidth, onJump },
   ref
 ) {
   const playerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const runSpriteRef = useRef<HTMLImageElement>(null);
+  const jumpSpriteRef = useRef<HTMLImageElement>(null);
+
+  // Calculate X position as percentage of container width (positioned on right, facing left)
+  const playerX = Math.floor(containerWidth * PLAYER_X_PERCENT);
 
   // Physics state stored in refs to avoid re-renders
-  const positionRef = useRef({ x: PLAYER_X_POSITION, y: 0 });
+  const positionRef = useRef({ x: playerX, y: 0 });
   const velocityRef = useRef({ x: 0, y: 0 });
   const isGroundedRef = useRef(true);
   const stateRef = useRef<PlayerState>("running");
@@ -71,18 +76,18 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
     }
   }, [containerHeight]);
 
+  // Switch sprites using CSS visibility (no image decode lag)
   const updateSprite = useCallback((state: PlayerState): void => {
-    if (!imageRef.current) {
+    if (!runSpriteRef.current || !jumpSpriteRef.current) {
       return;
     }
 
-    const newSrc =
-      state === "jumping"
-        ? GAME_ASSETS.CAROLINA_JUMP
-        : GAME_ASSETS.CAROLINA_RUN;
-
-    if (imageRef.current.src !== newSrc) {
-      imageRef.current.src = newSrc;
+    if (state === "jumping") {
+      runSpriteRef.current.style.visibility = "hidden";
+      jumpSpriteRef.current.style.visibility = "visible";
+    } else {
+      runSpriteRef.current.style.visibility = "visible";
+      jumpSpriteRef.current.style.visibility = "hidden";
     }
   }, []);
 
@@ -122,23 +127,23 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
         }
       }
 
-      // Apply transform directly to DOM
-      playerRef.current.style.transform = `translateY(${positionRef.current.y}px)`;
+      // Apply transform directly to DOM (translate3d for GPU acceleration on Safari)
+      playerRef.current.style.transform = `translate3d(0, ${positionRef.current.y}px, 0)`;
     },
     [updateSprite]
   );
 
   const reset = useCallback((): void => {
-    positionRef.current = { x: PLAYER_X_POSITION, y: floorYRef.current };
+    positionRef.current = { x: playerX, y: floorYRef.current };
     velocityRef.current = { x: 0, y: 0 };
     isGroundedRef.current = true;
     stateRef.current = "running";
     updateSprite("running");
 
     if (playerRef.current) {
-      playerRef.current.style.transform = `translateY(${floorYRef.current}px)`;
+      playerRef.current.style.transform = `translate3d(0, ${floorYRef.current}px, 0)`;
     }
-  }, [updateSprite]);
+  }, [updateSprite, playerX]);
 
   useImperativeHandle(ref, () => ({
     update,
@@ -152,26 +157,42 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(function Player(
   useEffect(() => {
     if (playerRef.current && floorYRef.current > 0) {
       positionRef.current.y = floorYRef.current;
-      playerRef.current.style.transform = `translateY(${floorYRef.current}px)`;
+      playerRef.current.style.transform = `translate3d(0, ${floorYRef.current}px, 0)`;
     }
   }, []);
 
   return (
     <div
       ref={playerRef}
-      className="absolute will-change-transform"
+      className="absolute z-10"
       style={{
-        left: PLAYER_X_POSITION,
+        left: playerX,
         width: PLAYER_WIDTH,
         height: PLAYER_HEIGHT,
+        // GPU acceleration for smooth animations on Safari
+        transform: "translate3d(0, 0, 0)",
+        backfaceVisibility: "hidden",
+        willChange: "transform",
       }}
     >
+      {/* Both sprites preloaded, switch via CSS visibility for zero-lag */}
+      {/* Flipped with scaleX(-1) to face left */}
       {/* eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance */}
       <img
-        ref={imageRef}
+        ref={runSpriteRef}
         src={GAME_ASSETS.CAROLINA_RUN}
-        alt="Carolina"
-        className="h-full w-full object-contain"
+        alt="Carolina running"
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{ transform: "scaleX(-1)" }}
+        draggable={false}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- Game sprite requires direct img for performance */}
+      <img
+        ref={jumpSpriteRef}
+        src={GAME_ASSETS.CAROLINA_JUMP}
+        alt="Carolina jumping"
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{ visibility: "hidden", transform: "scaleX(-1)" }}
         draggable={false}
       />
     </div>

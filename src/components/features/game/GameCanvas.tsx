@@ -36,32 +36,44 @@ export const GameCanvas = forwardRef<GameCanvasRef, GameCanvasProps>(
 
     return (
       <div
-        className="relative h-full w-full overflow-hidden"
+        className="relative h-full w-full overflow-hidden bg-[#1a1a2e]"
         style={{ overscrollBehaviorY: "none" }}
       >
-        {/* Sky layer - slowest (back) */}
+        {/*
+          Sky layer - village scene with transparent bottom
+          Aligned to top, scaled to show full scene width
+          The bottom ~40% is transparent, designed to blend with ground
+        */}
         <ParallaxLayer
           ref={skyLayerRef}
           src={GAME_ASSETS.SKY_BG}
           speed={PARALLAX_SPEEDS.SKY}
           zIndex={0}
+          verticalAlign="top"
         />
 
-        {/* Mid layer - medium speed */}
+        {/* Mid layer - disabled, not needed with new assets */}
         <ParallaxLayer
           ref={midLayerRef}
           src={GAME_ASSETS.SKY_MID}
           speed={PARALLAX_SPEEDS.MID}
           zIndex={10}
+          verticalAlign="top"
+          className="hidden"
         />
 
-        {/* Ground layer - fastest (front) */}
+        {/*
+          Ground layer - snow surface and underground ice crystals
+          Positioned at bottom 30%, showing snow edge and ice underground
+        */}
         <ParallaxLayer
           ref={groundLayerRef}
           src={GAME_ASSETS.GROUND}
           speed={PARALLAX_SPEEDS.GROUND}
           zIndex={20}
-          className="top-auto bottom-0 h-1/4"
+          verticalAlign="center"
+          backgroundScale={180}
+          className="!top-auto !h-[35%]"
         />
 
         {/* Game entities container */}

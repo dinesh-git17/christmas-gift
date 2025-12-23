@@ -33,10 +33,13 @@ export const GAME_SPEED = 5;
 // Player constants
 export const PLAYER_WIDTH = 100;
 export const PLAYER_HEIGHT = 100;
-export const PLAYER_X_POSITION = 80;
+// X position as percentage from left (player on left side, facing right)
+export const PLAYER_X_PERCENT = 0.12;
+// Breakpoint for mobile detection (matches Tailwind's sm)
+export const MOBILE_BREAKPOINT = 640;
 
-// Floor position (percentage from top)
-export const FLOOR_Y_PERCENT = 0.75;
+// Floor position (percentage from top) - aligns with snow/ice edge in ground layer
+export const FLOOR_Y_PERCENT = 0.68;
 
 // Parallax layer speeds (0-1, where 1 = game speed)
 export const PARALLAX_SPEEDS = {

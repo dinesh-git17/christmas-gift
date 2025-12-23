@@ -21,15 +21,17 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   const playerRef = useRef<PlayerRef>(null);
 
   const [containerHeight, setContainerHeight] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
   const { isPlaying, setIsPlaying } = useGameStore();
-  const { height: windowHeight } = useWindowSize();
+  const { height: windowHeight, width: windowWidth } = useWindowSize();
 
-  // Update container height on resize
+  // Update container dimensions on resize
   useEffect(() => {
     if (containerRef.current) {
       setContainerHeight(containerRef.current.offsetHeight);
+      setContainerWidth(containerRef.current.offsetWidth);
     }
-  }, [windowHeight]);
+  }, [windowHeight, windowWidth]);
 
   // Game loop callback
   const gameLoopCallback = useCallback(
@@ -56,13 +58,25 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   // Input handlers
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.code === "Space" || event.key === " ") {
+      // Support Space and ArrowUp for jump
+      if (
+        event.code === "Space" ||
+        event.key === " " ||
+        event.code === "ArrowUp" ||
+        event.key === "ArrowUp"
+      ) {
         event.preventDefault();
         handleJump();
       }
     };
 
     const handleTouchStart = (event: TouchEvent): void => {
+      // Only handle touch for jumping when game is playing
+      // Don't preventDefault on buttons (let them handle their own events)
+      const target = event.target as HTMLElement;
+      if (target.tagName === "BUTTON") {
+        return;
+      }
       event.preventDefault();
       handleJump();
     };
@@ -108,11 +122,15 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   }, [stop, onGameEnd]);
 
   // Start game handler
-  const handleStartGame = useCallback((): void => {
-    canvasRef.current?.reset();
-    playerRef.current?.reset();
-    setIsPlaying(true);
-  }, [setIsPlaying]);
+  const handleStartGame = useCallback(
+    (event: React.MouseEvent | React.TouchEvent): void => {
+      event.stopPropagation();
+      canvasRef.current?.reset();
+      playerRef.current?.reset();
+      setIsPlaying(true);
+    },
+    [setIsPlaying]
+  );
 
   return (
     <div
@@ -121,8 +139,12 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
       style={{ overscrollBehaviorY: "none" }}
     >
       <GameCanvas ref={canvasRef}>
-        {containerHeight > 0 && (
-          <Player ref={playerRef} containerHeight={containerHeight} />
+        {containerHeight > 0 && containerWidth > 0 && (
+          <Player
+            ref={playerRef}
+            containerHeight={containerHeight}
+            containerWidth={containerWidth}
+          />
         )}
       </GameCanvas>
 
@@ -131,6 +153,7 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
         <div className="bg-midnight/80 absolute inset-0 z-50 flex items-center justify-center">
           <button
             onClick={handleStartGame}
+            onTouchEnd={handleStartGame}
             className="bg-terminal-green text-midnight rounded-lg px-8 py-4 text-xl font-bold transition-transform hover:scale-105 active:scale-95"
             type="button"
           >
