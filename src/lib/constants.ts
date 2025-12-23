@@ -13,7 +13,8 @@ export const BOOT_SEQUENCE_MESSAGES = [
 
 export const TYPEWRITER_CHAR_DELAY_MS = 50;
 export const BOOT_MESSAGE_DELAY_MS = 800;
-export const BOOT_COMPLETE_DELAY_MS = 1500; // Delay after all messages typed before redirect
+export const BOOT_COMPLETE_DELAY_MS = 1500; // Delay after all messages typed before transition
+export const BOOT_FADE_DURATION_MS = 1000; // Duration of boot sequence fade out
 
 // Audio paths
 export const AUDIO_PATHS = {
@@ -23,6 +24,7 @@ export const AUDIO_PATHS = {
   JUMP: "/assets/audio/jump.mp3",
   COLLECT: "/assets/audio/collect.mp3",
   LOFI_CHRISTMAS: "/assets/audio/lofi_christmas.mp3",
+  COUNTDOWN: "/assets/audio/countdown.mp3",
 } as const;
 
 // Game physics constants
@@ -58,6 +60,10 @@ export const HITBOX_PADDING = 0.2; // 20% smaller hitbox for "fair" collisions
 
 // Win condition
 export const WIN_SCORE = 10;
+
+// Countdown constants
+export const COUNTDOWN_STEPS = ["3", "2", "1", "LINK!"] as const;
+export const COUNTDOWN_INTERVAL_MS = 750; // Duration for each countdown step (4 steps = 3s to match audio)
 
 // Asset paths
 export const GAME_ASSETS = {
