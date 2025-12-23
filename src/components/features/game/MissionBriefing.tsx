@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
+import { unlockAudio } from "@/hooks";
+
 import type { JSX } from "react";
 
 export interface MissionBriefingProps {
@@ -39,6 +41,8 @@ export function MissionBriefing({
   const handleInitiate = useCallback(
     (event: React.MouseEvent | React.TouchEvent): void => {
       event.stopPropagation();
+      // Unlock audio on initiate (backup for iOS PWA)
+      unlockAudio();
       onInitiate();
     },
     [onInitiate]

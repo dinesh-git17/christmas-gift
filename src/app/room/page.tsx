@@ -148,9 +148,7 @@ export default function RoomPage(): JSX.Element {
       )}
 
       {/* Letter overlay */}
-      <AnimatePresence>
-        {showLetter && <LetterView onClose={handleLetterClose} />}
-      </AnimatePresence>
+      <LetterView isOpen={showLetter} onClose={handleLetterClose} />
     </div>
   );
 }
