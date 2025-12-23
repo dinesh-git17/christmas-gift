@@ -82,14 +82,59 @@ export function MissionBriefing({
           transition={{ delay: 0.4, duration: 0.3 }}
           className="flex items-center gap-4"
         >
-          <div className="border-romance-gold/60 relative h-16 w-16 overflow-hidden rounded-lg border-2">
-            <Image
-              src="/assets/characters/dinn_heart.png"
-              alt="Subject: Dinn"
-              fill
-              className="object-cover"
-              unoptimized
-            />
+          {/* Glitch effect container */}
+          <div className="relative">
+            <motion.div
+              animate={{
+                x: [0, -2, 2, -1, 1, 0],
+                opacity: [1, 0.8, 1, 0.9, 1],
+              }}
+              transition={{
+                duration: 0.3,
+                repeat: Infinity,
+                repeatDelay: 2,
+              }}
+              className="border-romance-gold/60 relative h-20 w-20 overflow-hidden rounded-lg border-2"
+            >
+              <Image
+                src="/assets/characters/dinn_heart.png"
+                alt="Subject: Dinn"
+                fill
+                className="object-contain"
+                unoptimized
+              />
+              {/* Scanline overlay for weak signal effect */}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent opacity-50" />
+            </motion.div>
+            {/* Glitch color artifacts */}
+            <motion.div
+              animate={{
+                opacity: [0, 0.3, 0, 0.2, 0],
+                x: [0, 3, -2, 1, 0],
+              }}
+              transition={{
+                duration: 0.2,
+                repeat: Infinity,
+                repeatDelay: 2.5,
+              }}
+              className="pointer-events-none absolute inset-0 h-20 w-20 overflow-hidden rounded-lg mix-blend-screen"
+            >
+              <div className="absolute inset-0 translate-x-1 bg-cyan-500/30" />
+            </motion.div>
+            <motion.div
+              animate={{
+                opacity: [0, 0.2, 0, 0.3, 0],
+                x: [0, -3, 2, -1, 0],
+              }}
+              transition={{
+                duration: 0.2,
+                repeat: Infinity,
+                repeatDelay: 2.7,
+              }}
+              className="pointer-events-none absolute inset-0 h-20 w-20 overflow-hidden rounded-lg mix-blend-screen"
+            >
+              <div className="absolute inset-0 -translate-x-1 bg-red-500/30" />
+            </motion.div>
           </div>
           <div>
             <div className="text-terminal-green/60 font-mono text-xs uppercase">
@@ -98,9 +143,13 @@ export function MissionBriefing({
             <div className="text-romance-gold font-mono text-lg font-bold">
               SUBJECT: DINN
             </div>
-            <div className="text-terminal-green/80 font-mono text-xs">
+            <motion.div
+              animate={{ opacity: [0.8, 1, 0.6, 1, 0.8] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="font-mono text-xs text-red-400"
+            >
               Status: SIGNAL WEAK
-            </div>
+            </motion.div>
           </div>
         </motion.div>
 
