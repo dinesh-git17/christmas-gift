@@ -1,11 +1,141 @@
-import { RoomScene } from "@/components/features/room";
+"use client";
+
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { useState, useCallback } from "react";
+
+import {
+  RoomScene,
+  Subtitle,
+  SnowOverlay,
+  LetterView,
+  type SceneStep,
+} from "@/components/features/room";
+import { useAudio } from "@/hooks/use-audio";
+import { AUDIO_PATHS, ROOM_SCRIPT, ROOM_TIMING } from "@/lib/constants";
 
 import type { JSX } from "react";
 
 export default function RoomPage(): JSX.Element {
+  const [hasStarted, setHasStarted] = useState(false);
+  const [currentStep, setCurrentStep] = useState<SceneStep>(0);
+  const [showLetter, setShowLetter] = useState(false);
+
+  const lofiMusic = useAudio(AUDIO_PATHS.LOFI_CHRISTMAS, {
+    loop: true,
+    volume: ROOM_TIMING.MUSIC_VOLUME,
+  });
+
+  // Handle step changes from RoomScene
+  const handleStepChange = useCallback((step: SceneStep): void => {
+    setCurrentStep(step);
+  }, []);
+
+  // Start the experience on tap
+  const handleStart = useCallback((): void => {
+    if (!hasStarted) {
+      setHasStarted(true);
+      lofiMusic.preload();
+      lofiMusic.play();
+    }
+  }, [hasStarted, lofiMusic]);
+
+  // Handle Dinn click - show letter
+  const handleDinnClick = useCallback((): void => {
+    setShowLetter(true);
+  }, []);
+
+  // Handle letter close
+  const handleLetterClose = useCallback((): void => {
+    setShowLetter(false);
+  }, []);
+
+  // Get current subtitle text based on step
+  const currentText = ROOM_SCRIPT[currentStep]?.text ?? "";
+
+  // Show snow when together (step 3+)
+  const showSnow = currentStep >= 3;
+
   return (
-    <main className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_40%,_#2d1810_0%,_#1a0d08_35%,_#0a0404_70%,_#000000_100%)]">
-      <RoomScene />
-    </main>
+    <div className="fixed inset-0 overflow-hidden bg-[radial-gradient(ellipse_at_50%_40%,_#2d1810_0%,_#1a0d08_35%,_#0a0404_70%,_#000000_100%)]">
+      {/* Tap to start overlay */}
+      <AnimatePresence>
+        {!hasStarted && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            onClick={handleStart}
+            onTouchStart={handleStart}
+            className="absolute inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="flex flex-col items-center gap-6 px-8 text-center"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <Sparkles
+                  className="h-10 w-10 text-amber-200/90"
+                  strokeWidth={1.5}
+                />
+              </motion.div>
+              <p className="font-serif text-xl leading-relaxed text-white/90 italic sm:text-2xl">
+                Tap the screen to reveal the magic...
+              </p>
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="mt-4 rounded-full border border-white/30 px-6 py-2 text-sm text-white/60"
+              >
+                tap anywhere
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main scene - only renders after start */}
+      {hasStarted && (
+        <motion.main
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            duration: ROOM_TIMING.FADE_IN_DURATION,
+            ease: "easeOut",
+          }}
+          className="flex h-full flex-col items-center justify-center"
+        >
+          {/* Room scene with character animations */}
+          <RoomScene
+            onStepChange={handleStepChange}
+            onDinnClick={handleDinnClick}
+          />
+
+          {/* Cinematic subtitle overlay */}
+          <Subtitle text={currentText} />
+
+          {/* Snow particle effect - appears after reunion */}
+          <SnowOverlay isVisible={showSnow} />
+        </motion.main>
+      )}
+
+      {/* Letter overlay */}
+      <AnimatePresence>
+        {showLetter && <LetterView onClose={handleLetterClose} />}
+      </AnimatePresence>
+    </div>
   );
 }
