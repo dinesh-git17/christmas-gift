@@ -20,4 +20,40 @@ export const AUDIO_PATHS = {
   SCAN_HOLOGRAM: "/assets/audio/scan_hologram.mp3",
   SUCCESS_UNLOCK: "/assets/audio/success_unlock.mp3",
   ERROR_HIT: "/assets/audio/error_hit.mp3",
+  JUMP: "/assets/audio/jump.mp3",
+  COLLECT: "/assets/audio/collect.mp3",
+  LOFI_CHRISTMAS: "/assets/audio/lofi_christmas.mp3",
+} as const;
+
+// Game physics constants
+export const GRAVITY = 0.8;
+export const JUMP_FORCE = -15;
+export const GAME_SPEED = 5;
+
+// Player constants
+export const PLAYER_WIDTH = 100;
+export const PLAYER_HEIGHT = 100;
+// X position as percentage from left (player on left side, facing right)
+export const PLAYER_X_PERCENT = 0.12;
+// Breakpoint for mobile detection (matches Tailwind's sm)
+export const MOBILE_BREAKPOINT = 640;
+
+// Floor position (percentage from top) - aligns with snow/ice edge in ground layer
+export const FLOOR_Y_PERCENT = 0.68;
+
+// Parallax layer speeds (0-1, where 1 = game speed)
+export const PARALLAX_SPEEDS = {
+  SKY: 0.1,
+  MID: 0.5,
+  GROUND: 1,
+} as const;
+
+// Asset paths
+export const GAME_ASSETS = {
+  SKY_BG: "/assets/game/sky_bg.png",
+  SKY_MID: "/assets/game/sky_mid_layer.png",
+  GROUND: "/assets/game/ground_tile.png",
+  CAROLINA_RUN: "/assets/characters/carolina_run.png",
+  CAROLINA_JUMP: "/assets/characters/carolina_jump.png",
+  CAROLINA_HIT: "/assets/characters/carolina_hit.png",
 } as const;
