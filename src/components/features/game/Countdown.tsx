@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   AUDIO_PATHS,
@@ -19,54 +19,39 @@ export interface CountdownProps {
 export function Countdown({ onComplete }: CountdownProps): JSX.Element {
   const [currentStep, setCurrentStep] = useState(0);
   const hasCompletedRef = useRef(false);
+  const hasPlayedAudioRef = useRef(false);
   const isMuted = useGameStore((state) => state.isMuted);
 
-  // Audio refs
-  const beepAudioRef = useRef<HTMLAudioElement | null>(null);
-  const goAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Audio ref
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio elements
+  // Initialize and play countdown audio once on mount
   useEffect(() => {
-    beepAudioRef.current = new Audio(AUDIO_PATHS.COUNTDOWN_BEEP);
-    goAudioRef.current = new Audio(AUDIO_PATHS.COUNTDOWN_GO);
+    if (hasPlayedAudioRef.current || isMuted) {
+      return;
+    }
 
-    beepAudioRef.current.volume = 0.3;
-    goAudioRef.current.volume = 0.5;
+    audioRef.current = new Audio(AUDIO_PATHS.COUNTDOWN);
+    audioRef.current.volume = 0.5;
+
+    audioRef.current.play().catch(() => {
+      // Ignore audio play errors
+    });
+    hasPlayedAudioRef.current = true;
 
     return (): void => {
-      beepAudioRef.current = null;
-      goAudioRef.current = null;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
-  }, []);
-
-  // Play audio for current step
-  const playStepAudio = useCallback(
-    (step: number): void => {
-      if (isMuted) {
-        return;
-      }
-
-      const isLastStep = step === COUNTDOWN_STEPS.length - 1;
-      const audio = isLastStep ? goAudioRef.current : beepAudioRef.current;
-
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {
-          // Ignore audio play errors (e.g., user hasn't interacted yet)
-        });
-      }
-    },
-    [isMuted]
-  );
+  }, [isMuted]);
 
   // Progress through countdown steps
   useEffect(() => {
     if (hasCompletedRef.current) {
       return;
     }
-
-    // Play audio for current step
-    playStepAudio(currentStep);
 
     // If we've reached the last step, wait for it to display then complete
     if (currentStep >= COUNTDOWN_STEPS.length - 1) {
@@ -90,7 +75,7 @@ export function Countdown({ onComplete }: CountdownProps): JSX.Element {
     return (): void => {
       clearTimeout(timeout);
     };
-  }, [currentStep, onComplete, playStepAudio]);
+  }, [currentStep, onComplete]);
 
   const currentText = COUNTDOWN_STEPS[currentStep];
   const isLastStep = currentStep === COUNTDOWN_STEPS.length - 1;

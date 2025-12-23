@@ -24,8 +24,7 @@ export const AUDIO_PATHS = {
   JUMP: "/assets/audio/jump.mp3",
   COLLECT: "/assets/audio/collect.mp3",
   LOFI_CHRISTMAS: "/assets/audio/lofi_christmas.mp3",
-  COUNTDOWN_BEEP: "/assets/audio/scan_hologram.mp3", // Reuse scan sound for countdown
-  COUNTDOWN_GO: "/assets/audio/success_unlock.mp3", // Reuse success for "LINK!"
+  COUNTDOWN: "/assets/audio/countdown.mp3",
 } as const;
 
 // Game physics constants
@@ -64,7 +63,7 @@ export const WIN_SCORE = 10;
 
 // Countdown constants
 export const COUNTDOWN_STEPS = ["3", "2", "1", "LINK!"] as const;
-export const COUNTDOWN_INTERVAL_MS = 800; // Duration for each countdown step
+export const COUNTDOWN_INTERVAL_MS = 750; // Duration for each countdown step (4 steps = 3s to match audio)
 
 // Asset paths
 export const GAME_ASSETS = {
