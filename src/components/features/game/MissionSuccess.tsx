@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAudio } from "@/hooks";
-import { AUDIO_PATHS, WIN_SCORE } from "@/lib/constants";
+import { AUDIO_PATHS, ROOM_TIMING, WIN_SCORE } from "@/lib/constants";
 
 import type { JSX } from "react";
 
@@ -23,6 +23,12 @@ export function MissionSuccess({ score }: MissionSuccessProps): JSX.Element {
 
   const { play: playSuccessSound } = useAudio(AUDIO_PATHS.SUCCESS_UNLOCK, {
     volume: 0.6,
+  });
+
+  // Preload lofi music for room page - will be triggered on CTA click (user gesture)
+  const { preload: preloadLofiMusic } = useAudio(AUDIO_PATHS.LOFI_CHRISTMAS, {
+    loop: true,
+    volume: ROOM_TIMING.MUSIC_VOLUME,
   });
 
   // Play success sound on mount
@@ -51,9 +57,11 @@ export function MissionSuccess({ score }: MissionSuccessProps): JSX.Element {
   const handleEnterRoom = useCallback(
     (event: React.MouseEvent | React.TouchEvent): void => {
       event.stopPropagation();
+      // Initialize AudioContext during user gesture for iOS Safari
+      preloadLofiMusic();
       router.push("/room");
     },
-    [router]
+    [preloadLofiMusic, router]
   );
 
   return (

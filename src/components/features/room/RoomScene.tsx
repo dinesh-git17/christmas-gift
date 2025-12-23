@@ -5,16 +5,12 @@
 import { motion, type Variants } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 
+import { ROOM_ASSETS } from "@/lib/constants";
+
 import type { JSX } from "react";
 
 /** Scene step representing the narrative timeline */
 export type SceneStep = 0 | 1 | 2 | 3 | 4;
-
-const ROOM_ASSETS = {
-  FURNISHED_ROOM: "/assets/room/room_furnished.png",
-  DINN: "/assets/room/iso_dinn.png",
-  CAROLINA: "/assets/room/iso_carolina.png",
-} as const;
 
 /** Animation timing constants - slowed down for cinematic feel */
 const TIMING = {

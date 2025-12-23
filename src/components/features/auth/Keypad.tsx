@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useCallback, useState } from "react";
 
-import { useAudio } from "@/hooks/use-audio";
+import { useAudio, unlockAudio } from "@/hooks/use-audio";
 import {
   AUDIO_PATHS,
   AUTH_PASSCODE,
@@ -43,6 +43,9 @@ export function Keypad({ onSuccess }: KeypadProps): JSX.Element {
 
   const handleKeyPress = useCallback(
     (key: string): void => {
+      // Unlock audio on key press (backup for iOS PWA)
+      unlockAudio();
+
       if (isSuccess || !key) {
         return;
       }

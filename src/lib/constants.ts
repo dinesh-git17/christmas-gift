@@ -81,7 +81,15 @@ export const COUNTDOWN_INTERVAL_MS = 750; // Duration for each countdown step (4
 export const RUN_FRAME_DURATION_MS = 100;
 export const RUN_FRAME_COUNT = 4;
 
-// Asset paths
+// Letter content - the final message to Carolina
+export const FINAL_LETTER_CONTENT = [
+  "Hey you.",
+  "I know the distance adds a few extra hops between us and the miles between us feel like a high-latency server.",
+  "But no amount of packet loss could ever interrupt how much I miss you.",
+  "You're still my favorite co-op partner, my Player One, every save file, every run.",
+  "Merry Christmas, my beautiful baby.",
+] as const;
+
 // Room scene script - narrative text synchronized with animation steps
 export const ROOM_SCRIPT = [
   { id: 0, text: "The signal led me straight to you." },
@@ -101,6 +109,13 @@ export const ROOM_TIMING = {
   STEP_3_DELAY: 0.5, // Delay before final text
   SNOW_FADE_DURATION: 2,
   LETTER_HINT_DELAY: 5, // Show hint after this many seconds
+} as const;
+
+// Room scene assets (preloaded from game page for smooth transition)
+export const ROOM_ASSETS = {
+  FURNISHED_ROOM: "/assets/room/room_furnished.png",
+  DINN: "/assets/room/iso_dinn.png",
+  CAROLINA: "/assets/room/iso_carolina.png",
 } as const;
 
 export const GAME_ASSETS = {

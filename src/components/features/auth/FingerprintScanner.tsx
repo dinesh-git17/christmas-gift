@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useAudio } from "@/hooks/use-audio";
+import { useAudio, unlockAudio } from "@/hooks/use-audio";
 import {
   AUDIO_PATHS,
   HAPTIC_DURATION_MS,
@@ -59,6 +59,9 @@ export function FingerprintScanner({
   }, [cancelAnimation, onScanComplete, scanAudio, successAudio, triggerHaptic]);
 
   const handlePressStart = useCallback((): void => {
+    // Unlock audio on first touch (required for iOS PWA)
+    unlockAudio();
+
     if (scanState === "success") {
       return;
     }

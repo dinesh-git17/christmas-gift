@@ -20,25 +20,73 @@ interface UseAudioReturn {
 let sharedAudioContext: AudioContext | null = null;
 // Track raw audio data waiting to be decoded
 const rawAudioCache = new Map<string, ArrayBuffer>();
+// Track if audio has been unlocked (especially important for PWA mode)
+let isAudioUnlocked = false;
 
 // Create and resume AudioContext - MUST be called during user gesture on iOS Safari
-function initAudioContext(): AudioContext {
-  if (!sharedAudioContext) {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    // iOS Safari performs better with 44100 sample rate
-    sharedAudioContext = new AudioContextClass({ sampleRate: 44100 });
+function initAudioContext(): AudioContext | null {
+  try {
+    if (!sharedAudioContext) {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+
+      if (!AudioContextClass) {
+        return null;
+      }
+
+      // iOS Safari performs better with 44100 sample rate
+      sharedAudioContext = new AudioContextClass({ sampleRate: 44100 });
+    }
+
+    // Resume if suspended (must happen in same call stack as user gesture)
+    if (sharedAudioContext.state === "suspended") {
+      // Use void to handle promise without await (gesture must be sync)
+      void sharedAudioContext.resume();
+    }
+
+    return sharedAudioContext;
+  } catch {
+    // AudioContext creation failed
+    return null;
+  }
+}
+
+/**
+ * Unlock audio for iOS PWA mode.
+ * Must be called during a user gesture (touch/click).
+ * Plays a silent buffer to fully unlock the AudioContext.
+ */
+export function unlockAudio(): void {
+  if (isAudioUnlocked) {
+    return;
   }
 
-  // Resume if suspended (must happen in same call stack as user gesture)
-  if (sharedAudioContext.state === "suspended") {
-    // Use void to handle promise without await (gesture must be sync)
-    void sharedAudioContext.resume();
-  }
+  try {
+    const ctx = initAudioContext();
+    if (!ctx) {
+      return;
+    }
 
-  return sharedAudioContext;
+    // Create and play a silent buffer to unlock audio on iOS PWA
+    const silentBuffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(ctx.destination);
+    source.start(0);
+
+    // Also try to resume the context explicitly
+    if (ctx.state === "suspended") {
+      void ctx.resume().then(() => {
+        isAudioUnlocked = true;
+      });
+    } else {
+      isAudioUnlocked = true;
+    }
+  } catch {
+    // Silent fail - audio just won't work
+  }
 }
 
 export function useAudio(
@@ -140,8 +188,8 @@ export function useAudio(
     // Start decoding if not already done
     void decodeAudioBuffer();
 
-    // If buffer not ready yet, use HTML Audio fallback (works on first touch)
-    if (!audioBufferRef.current) {
+    // If no AudioContext or buffer not ready, use HTML Audio fallback
+    if (!ctx || !audioBufferRef.current) {
       if (fallbackAudioRef.current) {
         fallbackAudioRef.current.currentTime = 0;
         void fallbackAudioRef.current.play().catch(() => {
@@ -157,31 +205,41 @@ export function useAudio(
       fallbackAudioRef.current.currentTime = 0;
     }
 
-    // Create new source node for each play (required by Web Audio API)
-    const source = ctx.createBufferSource();
-    source.buffer = audioBufferRef.current;
-    source.loop = loop;
+    try {
+      // Create new source node for each play (required by Web Audio API)
+      const source = ctx.createBufferSource();
+      source.buffer = audioBufferRef.current;
+      source.loop = loop;
 
-    // Create gain node for volume control
-    const gainNode = ctx.createGain();
-    gainNode.gain.value = volume;
+      // Create gain node for volume control
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = volume;
 
-    // Connect: source -> gain -> destination
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
+      // Connect: source -> gain -> destination
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
 
-    // Store refs for stop/pause
-    sourceNodeRef.current = source;
-    gainNodeRef.current = gainNode;
+      // Store refs for stop/pause
+      sourceNodeRef.current = source;
+      gainNodeRef.current = gainNode;
 
-    // Start immediately (0 = now)
-    source.start(0);
+      // Start immediately (0 = now)
+      source.start(0);
 
-    // Clean up when sound ends (for non-looping sounds)
-    if (!loop) {
-      source.onended = (): void => {
-        sourceNodeRef.current = null;
-      };
+      // Clean up when sound ends (for non-looping sounds)
+      if (!loop) {
+        source.onended = (): void => {
+          sourceNodeRef.current = null;
+        };
+      }
+    } catch {
+      // Web Audio failed, try fallback
+      if (fallbackAudioRef.current) {
+        fallbackAudioRef.current.currentTime = 0;
+        void fallbackAudioRef.current.play().catch(() => {
+          // Fallback play failed too, ignore
+        });
+      }
     }
   }, [isMuted, loop, volume, decodeAudioBuffer]);
 
