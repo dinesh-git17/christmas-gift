@@ -74,8 +74,8 @@ export interface RoomSceneProps {
   className?: string;
   onStepChange?: (step: SceneStep) => void;
   onDinnClick?: () => void;
-  onBonusGameStart?: () => void;
   hasReadLetter?: boolean;
+  hasUnlockedGame?: boolean;
   isLetterOpen?: boolean;
 }
 
@@ -83,8 +83,8 @@ export function RoomScene({
   className = "",
   onStepChange,
   onDinnClick,
-  onBonusGameStart,
   hasReadLetter = false,
+  hasUnlockedGame = false,
   isLetterOpen = false,
 }: RoomSceneProps): JSX.Element {
   const [animationPhase, setAnimationPhase] = useState<
@@ -149,13 +149,10 @@ export function RoomScene({
 
   const handleDinnClick = useCallback((): void => {
     if (animationPhase === "interactive") {
-      if (hasReadLetter) {
-        onBonusGameStart?.();
-      } else {
-        onDinnClick?.();
-      }
+      // Parent handles routing based on hasReadLetter and hasUnlockedGame
+      onDinnClick?.();
     }
-  }, [animationPhase, hasReadLetter, onDinnClick, onBonusGameStart]);
+  }, [animationPhase, onDinnClick]);
 
   const isDinnInteractive = animationPhase === "interactive";
 
@@ -239,7 +236,9 @@ export function RoomScene({
                 className="text-midnight absolute -top-14 left-1/2 -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-sm font-bold whitespace-nowrap shadow-xl"
                 onClick={handleDinnClick}
               >
-                Psst... one more surprise! 🎁
+                {hasUnlockedGame
+                  ? "Tap for memories! 💭"
+                  : "Psst... one more surprise! 🎁"}
                 {/* Arrow pointing down */}
                 <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-white" />
               </motion.div>

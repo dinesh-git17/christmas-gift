@@ -9,6 +9,7 @@ import {
   Subtitle,
   SnowOverlay,
   LetterView,
+  ChoiceMenu,
   type SceneStep,
 } from "@/components/features/room";
 import { useAudio } from "@/hooks/use-audio";
@@ -24,6 +25,8 @@ export default function RoomPage(): JSX.Element {
   const [currentStep, setCurrentStep] = useState<SceneStep>(0);
   const [showLetter, setShowLetter] = useState(false);
   const [hasReadLetter, setHasReadLetter] = useState(false);
+  const [hasUnlockedGame, setHasUnlockedGame] = useState(false);
+  const [showChoiceMenu, setShowChoiceMenu] = useState(false);
 
   // Set body background for iOS Safari safe area coloring
   useEffect(() => {
@@ -56,12 +59,20 @@ export default function RoomPage(): JSX.Element {
     }
   }, [hasStarted, lofiMusic]);
 
-  // Handle Dinn click - behavior depends on letter read state
+  // Handle Dinn click - behavior depends on progression state
   const handleDinnClick = useCallback((): void => {
     if (!hasReadLetter) {
+      // Phase 1: First time - open letter
       setShowLetter(true);
+    } else if (!hasUnlockedGame) {
+      // Phase 2: After reading letter - auto-launch game
+      setHasUnlockedGame(true);
+      // TODO: Launch matching game (next story)
+    } else {
+      // Phase 3+: Show choice menu for revisiting
+      setShowChoiceMenu(true);
     }
-  }, [hasReadLetter]);
+  }, [hasReadLetter, hasUnlockedGame]);
 
   // Handle letter close - marks letter as read
   const handleLetterClose = useCallback((): void => {
@@ -69,8 +80,18 @@ export default function RoomPage(): JSX.Element {
     setHasReadLetter(true);
   }, []);
 
-  // Handle bonus game start (Encore feature)
-  const handleBonusGameStart = useCallback((): void => {
+  // Choice menu handlers
+  const handleChoiceMenuClose = useCallback((): void => {
+    setShowChoiceMenu(false);
+  }, []);
+
+  const handleChoiceSelectLetter = useCallback((): void => {
+    setShowChoiceMenu(false);
+    setShowLetter(true);
+  }, []);
+
+  const handleChoiceSelectGame = useCallback((): void => {
+    setShowChoiceMenu(false);
     // TODO: Navigate to matching game (next story)
   }, []);
 
@@ -146,8 +167,8 @@ export default function RoomPage(): JSX.Element {
           <RoomScene
             onStepChange={handleStepChange}
             onDinnClick={handleDinnClick}
-            onBonusGameStart={handleBonusGameStart}
             hasReadLetter={hasReadLetter}
+            hasUnlockedGame={hasUnlockedGame}
             isLetterOpen={showLetter}
           />
 
@@ -161,6 +182,14 @@ export default function RoomPage(): JSX.Element {
 
       {/* Letter overlay */}
       <LetterView isOpen={showLetter} onClose={handleLetterClose} />
+
+      {/* Choice menu for revisiting */}
+      <ChoiceMenu
+        isOpen={showChoiceMenu}
+        onClose={handleChoiceMenuClose}
+        onSelectLetter={handleChoiceSelectLetter}
+        onSelectGame={handleChoiceSelectGame}
+      />
     </div>
   );
 }
