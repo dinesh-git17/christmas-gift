@@ -104,7 +104,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           className="absolute h-auto w-[12%] origin-bottom object-contain"
           style={{
             zIndex: 10,
-            top: "38%",
+            top: "42%",
             left: "44%",
           }}
           animate={breatheAnimation}
@@ -123,7 +123,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
           className="absolute h-auto w-[12%] origin-bottom object-contain"
           style={{
             zIndex: 10,
-            top: "38%",
+            top: "42%",
             left: "36%",
             scaleX: -1,
           }}
