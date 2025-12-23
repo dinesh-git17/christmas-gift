@@ -1,5 +1,5 @@
 // Auth constants
-export const AUTH_PASSCODE = "1225";
+export const AUTH_PASSCODE = "1701";
 export const SCAN_DURATION_MS = 2000;
 export const HAPTIC_DURATION_MS = 200;
 export const SUCCESS_AUDIO_DELAY_MS = 1500; // Let success audio play before transitioning
