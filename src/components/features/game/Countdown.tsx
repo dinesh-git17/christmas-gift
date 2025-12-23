@@ -3,12 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-import { useAudio } from "@/hooks";
-import {
-  AUDIO_PATHS,
-  COUNTDOWN_INTERVAL_MS,
-  COUNTDOWN_STEPS,
-} from "@/lib/constants";
+import { COUNTDOWN_INTERVAL_MS, COUNTDOWN_STEPS } from "@/lib/constants";
 
 import type { JSX } from "react";
 
@@ -19,27 +14,6 @@ export interface CountdownProps {
 export function Countdown({ onComplete }: CountdownProps): JSX.Element {
   const [currentStep, setCurrentStep] = useState(0);
   const hasCompletedRef = useRef(false);
-  const hasPlayedAudioRef = useRef(false);
-
-  // Use the audio hook for proper iOS Safari support
-  const { play: playCountdown, stop: stopCountdown } = useAudio(
-    AUDIO_PATHS.COUNTDOWN,
-    { volume: 0.5 }
-  );
-
-  // Play countdown audio once on mount
-  useEffect(() => {
-    if (hasPlayedAudioRef.current) {
-      return;
-    }
-
-    hasPlayedAudioRef.current = true;
-    playCountdown();
-
-    return (): void => {
-      stopCountdown();
-    };
-  }, [playCountdown, stopCountdown]);
 
   // Progress through countdown steps
   useEffect(() => {

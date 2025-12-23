@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useGameLoop, useWindowSize } from "@/hooks";
+import { useAudio, useGameLoop, useWindowSize } from "@/hooks";
+import { AUDIO_PATHS } from "@/lib/constants";
 import { useGameStore } from "@/lib/store";
 
 import { Countdown } from "./Countdown";
@@ -37,6 +38,11 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
     reset: resetGame,
   } = useGameStore();
   const { height: windowHeight, width: windowWidth } = useWindowSize();
+
+  // Countdown audio - must be played directly from user gesture
+  const { play: playCountdown } = useAudio(AUDIO_PATHS.COUNTDOWN, {
+    volume: 0.5,
+  });
 
   // Update container dimensions on resize
   useEffect(() => {
@@ -147,12 +153,13 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
 
   // Handle mission briefing initiate - start countdown
   const handleInitiate = useCallback((): void => {
+    playCountdown(); // Must be called directly from user gesture
     resetGame();
     canvasRef.current?.reset();
     playerRef.current?.reset();
     spawnerRef.current?.reset();
     startCountdown();
-  }, [resetGame, startCountdown]);
+  }, [playCountdown, resetGame, startCountdown]);
 
   // Handle countdown complete - start the game
   const handleCountdownComplete = useCallback((): void => {
@@ -163,13 +170,14 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   const handleRetry = useCallback(
     (event: React.MouseEvent | React.TouchEvent): void => {
       event.stopPropagation();
+      playCountdown(); // Must be called directly from user gesture
       resetGame();
       canvasRef.current?.reset();
       playerRef.current?.reset();
       spawnerRef.current?.reset();
       startCountdown();
     },
-    [resetGame, startCountdown]
+    [playCountdown, resetGame, startCountdown]
   );
 
   return (
