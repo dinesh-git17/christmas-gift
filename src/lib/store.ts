@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface GameState {
   score: number;
@@ -22,16 +23,23 @@ export const useGameStore = create<GameState>((set) => ({
   reset: () => set({ score: 0, isPlaying: false }),
 }));
 
+export type AuthStage = "LOCKED" | "SCANNED" | "BOOTING" | "AUTHENTICATED";
+
 interface AuthState {
-  isAuthenticated: boolean;
-  authStage: "fingerprint" | "keypad" | "complete";
-  setIsAuthenticated: (isAuthenticated: boolean) => void;
-  setAuthStage: (stage: "fingerprint" | "keypad" | "complete") => void;
+  authStage: AuthStage;
+  setAuthStage: (stage: AuthStage) => void;
+  resetAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: false,
-  authStage: "fingerprint",
-  setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
-  setAuthStage: (authStage) => set({ authStage }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      authStage: "LOCKED",
+      setAuthStage: (authStage) => set({ authStage }),
+      resetAuth: () => set({ authStage: "LOCKED" }),
+    }),
+    {
+      name: "north-pole-auth",
+    }
+  )
+);
