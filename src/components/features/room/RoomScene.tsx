@@ -125,6 +125,7 @@ export function RoomScene({ className = "" }: RoomSceneProps): JSX.Element {
             zIndex: 10,
             top: "38%",
             left: "36%",
+            scaleX: -1,
           }}
           variants={carolinaVariants}
           initial="initial"
