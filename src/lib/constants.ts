@@ -65,12 +65,22 @@ export const WIN_SCORE = 10;
 export const COUNTDOWN_STEPS = ["3", "2", "1", "LINK!"] as const;
 export const COUNTDOWN_INTERVAL_MS = 750; // Duration for each countdown step (4 steps = 3s to match audio)
 
+// Run animation constants
+export const RUN_FRAME_DURATION_MS = 100;
+export const RUN_FRAME_COUNT = 4;
+
 // Asset paths
 export const GAME_ASSETS = {
   SKY_BG: "/assets/game/sky_bg.png",
   SKY_MID: "/assets/game/sky_mid_layer.png",
   GROUND: "/assets/game/ground_tile.png",
   CAROLINA_RUN: "/assets/characters/carolina_run.png",
+  CAROLINA_RUN_FRAMES: [
+    "/assets/characters/carolina_run_1.png",
+    "/assets/characters/carolina_run_2.png",
+    "/assets/characters/carolina_run_3.png",
+    "/assets/characters/carolina_run_4.png",
+  ] as const,
   CAROLINA_JUMP: "/assets/characters/carolina_jump.png",
   CAROLINA_HIT: "/assets/characters/carolina_hit.png",
   TOKEN_HEART: "/assets/game/token_heart.png",
