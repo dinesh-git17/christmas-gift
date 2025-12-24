@@ -8,7 +8,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Christmas Gift | Room",
+  title: "Holiday.EXE | Room",
 };
 
 export interface RoomLayoutProps {

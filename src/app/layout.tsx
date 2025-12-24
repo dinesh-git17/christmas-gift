@@ -27,12 +27,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Christmas Gift",
+  title: "Holiday.EXE",
   description: "A special interactive Christmas experience",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Christmas Gift",
+    title: "Holiday.EXE",
   },
   formatDetection: {
     telephone: false,

@@ -107,7 +107,7 @@ export function BootSequence({ onComplete }: BootSequenceProps): JSX.Element {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex min-h-svh flex-col items-start justify-center p-8"
+      className="flex h-full flex-col items-start justify-center overflow-hidden p-8"
     >
       <div className="text-terminal-green font-mono text-sm leading-relaxed">
         {BOOT_SEQUENCE_MESSAGES.map((message, index) => {

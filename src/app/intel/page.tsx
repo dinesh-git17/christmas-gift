@@ -444,11 +444,21 @@ function LoveLetter({ onReplay }: LoveLetterProps): JSX.Element {
       transition={{ duration: 0.8 }}
       className="absolute inset-0 flex flex-col"
     >
+      {/* Top fade overlay - covers safe area and fades text smoothly */}
+      <div
+        className="pointer-events-none absolute top-0 right-0 left-0 z-10"
+        style={{
+          height: "calc(env(safe-area-inset-top, 0px) + 3rem)",
+          background: `linear-gradient(to bottom, ${INTEL_BG_COLOR} 0%, ${INTEL_BG_COLOR} 60%, transparent 100%)`,
+        }}
+      />
+
       {/* Letter container - always scrollable */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 pt-8"
+        className="flex-1 overflow-y-auto overscroll-contain px-4"
         style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 2rem)",
           scrollbarWidth: "thin",
           scrollbarColor: "rgba(0, 255, 65, 0.3) transparent",
           WebkitOverflowScrolling: "touch",

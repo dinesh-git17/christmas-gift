@@ -4,7 +4,7 @@ import type { JSX } from "react";
 
 export default function Home(): JSX.Element {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center overscroll-none">
+    <main className="fixed inset-0 overflow-hidden overscroll-none">
       <AuthFlow />
     </main>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 import { Game } from "@/components/features/game";
 import { BOOT_FADE_DURATION_MS } from "@/lib/constants";
@@ -75,19 +75,11 @@ export function AuthFlow(): JSX.Element {
   const isClient = useIsClient();
   const authStage = useAuthStore((state) => state.authStage);
   const setAuthStage = useAuthStore((state) => state.setAuthStage);
-  const resetAuth = useAuthStore((state) => state.resetAuth);
   const [isBootFading, setIsBootFading] = useState(false);
   const [isBootComplete, setIsBootComplete] = useState(false);
 
   // Check if we need to show the uplink screen (iOS PWA only, once per session)
   const needsUplink = isClient && isIOSPWA() && !hasCompletedUplink();
-
-  // Reset auth state when uplink is needed (user restarted PWA)
-  useEffect(() => {
-    if (needsUplink) {
-      resetAuth();
-    }
-  }, [needsUplink, resetAuth]);
 
   const getFlowStageFromAuth = (stage: AuthStage): FlowStage => {
     // If on iOS PWA and haven't completed uplink, show uplink first
@@ -152,7 +144,7 @@ export function AuthFlow(): JSX.Element {
 
   if (!isClient) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center overflow-hidden">
         <div className="bg-terminal-green/20 h-8 w-8 animate-pulse rounded-full" />
       </div>
     );
@@ -161,7 +153,7 @@ export function AuthFlow(): JSX.Element {
   // Boot/Game phase - Game is mounted behind BootSequence
   if (flowStage === "boot" || flowStage === "game") {
     return (
-      <div className="relative h-svh w-full overflow-hidden overscroll-none">
+      <div className="fixed inset-0 overflow-hidden overscroll-none">
         {/* Game layer - always mounted when in boot/game phase, starts behind boot */}
         <div className="absolute inset-0 z-0">
           <Game />
@@ -192,7 +184,7 @@ export function AuthFlow(): JSX.Element {
   }
 
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden overscroll-none">
+    <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden overscroll-none">
       <AnimatePresence mode="wait">
         {flowStage === "fingerprint" && (
           <motion.div
