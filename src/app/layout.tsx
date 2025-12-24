@@ -1,5 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { AudioProvider } from "@/components/providers";
+
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
@@ -47,7 +49,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-midnight text-foreground antialiased`}
       >
-        {children}
+        <AudioProvider>{children}</AudioProvider>
       </body>
     </html>
   );
