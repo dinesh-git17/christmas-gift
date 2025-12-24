@@ -30,6 +30,17 @@ export const AUDIO_PATHS = {
   CARD_WIN: "/assets/audio/card_win.mp3",
   SUCCESS: "/assets/audio/sucess.mp3",
   ERROR: "/assets/audio/error.mp3",
+  UNLOCK: "/assets/audio/unlock.mp3",
+  VAULT: "/assets/audio/vault.wav",
+  RUNNER: "/assets/audio/runner.mp3",
+} as const;
+
+// Audio durations (in milliseconds) for waiting on completion
+export const AUDIO_DURATIONS = {
+  UNLOCK: 2000,
+  VAULT: 3300,
+  DECRYPT: 15000,
+  RUNNER: 80000,
 } as const;
 
 // Game physics constants
