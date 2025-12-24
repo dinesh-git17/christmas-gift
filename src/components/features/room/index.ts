@@ -8,3 +8,5 @@ export { LetterView } from "./LetterView";
 export type { LetterViewProps } from "./LetterView";
 export { ChoiceMenu } from "./ChoiceMenu";
 export type { ChoiceMenuProps } from "./ChoiceMenu";
+export { MemoryGame } from "./MemoryGame";
+export type { MemoryGameProps } from "./MemoryGame";
