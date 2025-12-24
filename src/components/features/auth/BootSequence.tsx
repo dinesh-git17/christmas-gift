@@ -3,7 +3,9 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAudio } from "@/hooks/use-audio";
 import {
+  AUDIO_PATHS,
   BOOT_COMPLETE_DELAY_MS,
   BOOT_MESSAGE_DELAY_MS,
   BOOT_SEQUENCE_MESSAGES,
@@ -11,6 +13,9 @@ import {
 } from "@/lib/constants";
 
 import type { JSX } from "react";
+
+// Longer fade that starts when last line begins typing for smooth transition
+const FADE_OUT_DURATION_MS = 2500;
 
 interface MessageLineProps {
   text: string;
@@ -75,6 +80,29 @@ export function BootSequence({ onComplete }: BootSequenceProps): JSX.Element {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const hasCalledComplete = useRef(false);
+  const hasStartedAudio = useRef(false);
+  const hasStartedFade = useRef(false);
+
+  const decryptAudio = useAudio(AUDIO_PATHS.DECRYPT, { volume: 0.7 });
+
+  // Play decrypt audio once on mount
+  useEffect(() => {
+    if (hasStartedAudio.current) {
+      return;
+    }
+    hasStartedAudio.current = true;
+    decryptAudio.play();
+  }, [decryptAudio]);
+
+  // Start fading audio when last line begins typing (not when it completes)
+  useEffect(() => {
+    const isLastMessage =
+      currentMessageIndex === BOOT_SEQUENCE_MESSAGES.length - 1;
+    if (isLastMessage && !hasStartedFade.current) {
+      hasStartedFade.current = true;
+      void decryptAudio.fadeOut(FADE_OUT_DURATION_MS);
+    }
+  }, [currentMessageIndex, decryptAudio]);
 
   const handleMessageComplete = useCallback((): void => {
     if (currentMessageIndex < BOOT_SEQUENCE_MESSAGES.length - 1) {
@@ -94,6 +122,7 @@ export function BootSequence({ onComplete }: BootSequenceProps): JSX.Element {
     const timeout = setTimeout(() => {
       if (!hasCalledComplete.current) {
         hasCalledComplete.current = true;
+        // Audio already fading/faded, just transition
         onComplete();
       }
     }, BOOT_COMPLETE_DELAY_MS);

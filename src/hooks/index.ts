@@ -4,5 +4,6 @@ export {
   unlockAudio,
   resumeAudioContext,
   getAudioContextState,
+  preloadGameAudio,
 } from "./use-audio";
 export { useGameLoop } from "./use-game-loop";

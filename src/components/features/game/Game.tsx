@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useAudio, useGameLoop, useWindowSize } from "@/hooks";
+import {
+  useAudio,
+  useGameLoop,
+  useWindowSize,
+  preloadGameAudio,
+} from "@/hooks";
 import { AUDIO_PATHS, BASE_GAME_SPEED, SPEED_INCREMENT } from "@/lib/constants";
 import { useGameStore } from "@/lib/store";
 
@@ -18,6 +23,14 @@ import { Spawner, type SpawnerRef } from "./Spawner";
 import type { JSX } from "react";
 
 const DEFAULT_HITBOX = { left: 0, right: 0, top: 0, bottom: 0 };
+
+// Critical game audio to preload during countdown (loading gate pattern)
+const CRITICAL_GAME_AUDIO = [
+  AUDIO_PATHS.JUMP,
+  AUDIO_PATHS.COLLECT,
+  AUDIO_PATHS.ERROR_HIT,
+  AUDIO_PATHS.RUNNER,
+];
 
 export interface GameProps {
   onGameStart?: () => void;
@@ -45,6 +58,12 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   // Countdown audio - must be played directly from user gesture
   const { play: playCountdown } = useAudio(AUDIO_PATHS.COUNTDOWN, {
     volume: 0.5,
+  });
+
+  // Runner background music - soft ambient during gameplay
+  const runnerMusic = useAudio(AUDIO_PATHS.RUNNER, {
+    loop: true,
+    volume: 0.15, // Soft background, not attention-stealing
   });
 
   // Update container dimensions on resize
@@ -143,11 +162,13 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
   useEffect(() => {
     if (isPlaying) {
       start();
+      runnerMusic.play();
       onGameStart?.();
     } else {
       stop();
+      runnerMusic.stop();
     }
-  }, [isPlaying, start, stop, onGameStart]);
+  }, [isPlaying, start, stop, onGameStart, runnerMusic]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -165,6 +186,10 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
     playerRef.current?.reset();
     spawnerRef.current?.reset();
     startCountdown();
+
+    // Preload all game audio during countdown (3 seconds of cover)
+    // This eliminates first-tap lag by ensuring audio is decoded before game starts
+    void preloadGameAudio(CRITICAL_GAME_AUDIO);
   }, [playCountdown, resetGame, startCountdown]);
 
   // Handle countdown complete - start the game
@@ -182,6 +207,9 @@ export function Game({ onGameStart, onGameEnd }: GameProps): JSX.Element {
       playerRef.current?.reset();
       spawnerRef.current?.reset();
       startCountdown();
+
+      // Preload audio again (in case cache was cleared)
+      void preloadGameAudio(CRITICAL_GAME_AUDIO);
     },
     [playCountdown, resetGame, startCountdown]
   );

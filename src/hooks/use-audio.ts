@@ -14,6 +14,10 @@ interface UseAudioReturn {
   pause: () => void;
   stop: () => void;
   preload: () => void;
+  decodeAsync: () => Promise<boolean>;
+  playAndWait: (durationMs: number) => Promise<void>;
+  fadeOut: (durationMs: number) => Promise<void>;
+  setVolume: (volume: number) => void;
 }
 
 // Shared AudioContext for all sounds (iOS Safari prefers 44100 sample rate)
@@ -195,6 +199,48 @@ export function getAudioContextState(): AudioContextState | "unavailable" {
   return sharedAudioContext.state;
 }
 
+/**
+ * Preload and decode critical game audio during countdown.
+ * This is the "loading gate" pattern - ensures zero latency on first tap.
+ * Must be called after AudioContext is unlocked (during/after user gesture).
+ *
+ * @param audioPaths - Array of audio paths to preload and decode
+ * @returns Promise that resolves when all audio is decoded (or timeout)
+ */
+export async function preloadGameAudio(audioPaths: string[]): Promise<void> {
+  const ctx = initAudioContext();
+  if (!ctx) {
+    return;
+  }
+
+  // Fetch and decode all audio in parallel
+  const decodePromises = audioPaths.map(async (src) => {
+    try {
+      // Fetch if not already cached
+      if (!rawAudioCache.has(src)) {
+        const response = await fetch(src);
+        const arrayBuffer = await response.arrayBuffer();
+        rawAudioCache.set(src, arrayBuffer);
+      }
+
+      // Decode the audio buffer
+      const rawData = rawAudioCache.get(src);
+      if (rawData && ctx) {
+        const clonedData = rawData.slice(0);
+        await ctx.decodeAudioData(clonedData);
+      }
+    } catch {
+      // Silent fail - audio will use fallback when played
+    }
+  });
+
+  // Wait for all with a timeout (don't block game start indefinitely)
+  await Promise.race([
+    Promise.all(decodePromises),
+    new Promise((resolve) => setTimeout(resolve, 2500)), // 2.5s max wait
+  ]);
+}
+
 export function useAudio(
   src: string,
   options: UseAudioOptions = {}
@@ -205,6 +251,7 @@ export function useAudio(
   const gainNodeRef = useRef<GainNode | null>(null);
   const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
   const isDecodingRef = useRef(false);
+  const isFadingRef = useRef(false);
   const isMuted = useGameStore((state) => state.isMuted);
 
   // Pre-fetch raw audio data on mount (doesn't need AudioContext)
@@ -232,6 +279,10 @@ export function useAudio(
     fallbackAudioRef.current.volume = volume;
 
     return (): void => {
+      // Skip cleanup if audio is fading - let the fade complete naturally
+      if (isFadingRef.current) {
+        return;
+      }
       // Stop any playing source on unmount
       if (sourceNodeRef.current) {
         try {
@@ -416,5 +467,128 @@ export function useAudio(
     }
   }, []);
 
-  return { play, pause, stop, preload };
+  // Decode audio buffer and return a Promise that resolves when ready
+  const decodeAsync = useCallback(async (): Promise<boolean> => {
+    // Ensure AudioContext exists
+    const ctx = initAudioContext();
+    if (!ctx) {
+      return false;
+    }
+
+    // If already decoded, return immediately
+    if (audioBufferRef.current) {
+      return true;
+    }
+
+    // Wait for raw data to be fetched if not already
+    let attempts = 0;
+    while (!rawAudioCache.has(src) && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      attempts++;
+    }
+
+    if (!rawAudioCache.has(src)) {
+      return false;
+    }
+
+    // Decode the audio
+    await decodeAudioBuffer();
+    return audioBufferRef.current !== null;
+  }, [src, decodeAudioBuffer]);
+
+  // Play audio and wait for it to complete
+  const playAndWait = useCallback(
+    (durationMs: number): Promise<void> => {
+      return new Promise((resolve) => {
+        play();
+        setTimeout(resolve, durationMs);
+      });
+    },
+    [play]
+  );
+
+  // Fade out audio smoothly over duration
+  const fadeOut = useCallback(
+    (durationMs: number): Promise<void> => {
+      return new Promise((resolve) => {
+        isFadingRef.current = true;
+        const steps = 20;
+        const stepDuration = durationMs / steps;
+        let currentStep = 0;
+
+        const finishFade = (): void => {
+          isFadingRef.current = false;
+          stop();
+          resolve();
+        };
+
+        // Handle Web Audio API gain node fade
+        if (gainNodeRef.current && sharedAudioContext) {
+          const startVolume = gainNodeRef.current.gain.value;
+          const fadeInterval = setInterval(() => {
+            currentStep++;
+            const newVolume = startVolume * (1 - currentStep / steps);
+
+            if (gainNodeRef.current) {
+              gainNodeRef.current.gain.value = Math.max(0, newVolume);
+            }
+
+            if (currentStep >= steps) {
+              clearInterval(fadeInterval);
+              finishFade();
+            }
+          }, stepDuration);
+          return;
+        }
+
+        // Handle HTML5 Audio fade
+        if (fallbackAudioRef.current) {
+          const startVolume = fallbackAudioRef.current.volume;
+          const fadeInterval = setInterval(() => {
+            currentStep++;
+            const newVolume = startVolume * (1 - currentStep / steps);
+
+            if (fallbackAudioRef.current) {
+              fallbackAudioRef.current.volume = Math.max(0, newVolume);
+            }
+
+            if (currentStep >= steps) {
+              clearInterval(fadeInterval);
+              finishFade();
+            }
+          }, stepDuration);
+          return;
+        }
+
+        // No audio playing, resolve immediately
+        isFadingRef.current = false;
+        resolve();
+      });
+    },
+    [stop]
+  );
+
+  // Set volume dynamically
+  const setVolume = useCallback((newVolume: number): void => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = clampedVolume;
+    }
+
+    if (fallbackAudioRef.current) {
+      fallbackAudioRef.current.volume = clampedVolume;
+    }
+  }, []);
+
+  return {
+    play,
+    pause,
+    stop,
+    preload,
+    decodeAsync,
+    playAndWait,
+    fadeOut,
+    setVolume,
+  };
 }

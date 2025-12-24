@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAudio, unlockAudio } from "@/hooks/use-audio";
 import {
+  AUDIO_DURATIONS,
   AUDIO_PATHS,
   HAPTIC_DURATION_MS,
   SCAN_DURATION_MS,
@@ -30,7 +31,7 @@ export function FingerprintScanner({
   const lastUpdateRef = useRef<number>(0);
 
   const scanAudio = useAudio(AUDIO_PATHS.SCAN_HOLOGRAM, { loop: true });
-  const successAudio = useAudio(AUDIO_PATHS.SUCCESS_UNLOCK);
+  const unlockSoundAudio = useAudio(AUDIO_PATHS.UNLOCK);
 
   const cancelAnimation = useCallback((): void => {
     if (rafRef.current !== null) {
@@ -50,13 +51,19 @@ export function FingerprintScanner({
     setScanState("success");
     setProgress(100);
     scanAudio.stop();
-    successAudio.play();
     triggerHaptic();
 
-    setTimeout(() => {
+    // Play unlock sound and wait for it to complete before transitioning
+    void unlockSoundAudio.playAndWait(AUDIO_DURATIONS.UNLOCK).then(() => {
       onScanComplete();
-    }, 500);
-  }, [cancelAnimation, onScanComplete, scanAudio, successAudio, triggerHaptic]);
+    });
+  }, [
+    cancelAnimation,
+    onScanComplete,
+    scanAudio,
+    unlockSoundAudio,
+    triggerHaptic,
+  ]);
 
   const handlePressStart = useCallback((): void => {
     // Unlock audio on first touch (required for iOS PWA)
