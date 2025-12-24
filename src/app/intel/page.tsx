@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, Heart } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect, useRef } from "react";
 
 import { useAudio, unlockAudio } from "@/hooks";
@@ -391,9 +392,10 @@ const CTA_SAFE_AREA_HEIGHT = 160;
  */
 interface LoveLetterProps {
   onReplay: () => void;
+  onContinue: () => void;
 }
 
-function LoveLetter({ onReplay }: LoveLetterProps): JSX.Element {
+function LoveLetter({ onReplay, onContinue }: LoveLetterProps): JSX.Element {
   const [displayedText, setDisplayedText] = useState("");
   const [isComplete, setIsComplete] = useState(false);
   const [isTyping, setIsTyping] = useState(true);
@@ -431,10 +433,6 @@ function LoveLetter({ onReplay }: LoveLetterProps): JSX.Element {
     return (): void => {
       clearInterval(interval);
     };
-  }, []);
-
-  const handleContinue = useCallback((): void => {
-    // Continue leads nowhere for now
   }, []);
 
   return (
@@ -511,7 +509,7 @@ function LoveLetter({ onReplay }: LoveLetterProps): JSX.Element {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleContinue}
+                  onClick={onContinue}
                   className="bg-terminal-green text-midnight min-h-[48px] flex-1 rounded-lg px-6 py-3 font-mono text-sm font-bold transition-colors hover:bg-white"
                 >
                   Continue
@@ -530,6 +528,7 @@ function LoveLetter({ onReplay }: LoveLetterProps): JSX.Element {
  * State machine: BRIEFING → DECRYPTING → GLOWING → FADING → DARK_PAUSE → MUSIC_CUE → LETTER
  */
 export default function IntelPage(): JSX.Element {
+  const router = useRouter();
   const [viewState, setViewState] = useState<ViewState>("BRIEFING");
   const [letterKey, setLetterKey] = useState(0);
 
@@ -616,6 +615,12 @@ export default function IntelPage(): JSX.Element {
   const handleReplay = useCallback((): void => {
     setLetterKey((prev) => prev + 1);
   }, []);
+
+  // Handle continue - navigate to cipher page
+  const handleContinue = useCallback((): void => {
+    loveStoryMusic.fadeOut(800);
+    router.replace("/cipher");
+  }, [loveStoryMusic, router]);
 
   return (
     <div className="bg-midnight fixed inset-0">
@@ -730,7 +735,11 @@ export default function IntelPage(): JSX.Element {
           )}
 
           {viewState === "LETTER" && (
-            <LoveLetter key={`letter-${letterKey}`} onReplay={handleReplay} />
+            <LoveLetter
+              key={`letter-${letterKey}`}
+              onReplay={handleReplay}
+              onContinue={handleContinue}
+            />
           )}
         </AnimatePresence>
       </main>
