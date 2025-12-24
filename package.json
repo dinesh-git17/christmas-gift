@@ -16,7 +16,10 @@
     "test:coverage": "jest --coverage",
     "prepare": "husky",
     "attribution-guard": "node scripts/attribution-guard.js",
-    "commit-msg-guard": "node scripts/commit-msg-guard.js"
+    "commit-msg-guard": "node scripts/commit-msg-guard.js",
+    "cap:sync": "npm run build && npx cap sync ios",
+    "cap:open": "npx cap open ios",
+    "cap:build": "npm run build && npx cap sync ios && npx cap open ios"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,json,md,css,html,yml,yaml}": [
@@ -28,6 +31,9 @@
     ]
   },
   "dependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",

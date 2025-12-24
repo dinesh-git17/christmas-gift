@@ -20,8 +20,22 @@ interface UseAudioReturn {
 let sharedAudioContext: AudioContext | null = null;
 // Track raw audio data waiting to be decoded
 const rawAudioCache = new Map<string, ArrayBuffer>();
-// Track if audio has been unlocked (especially important for PWA mode)
-let isAudioUnlocked = false;
+
+// Detect iOS PWA standalone mode - needs special handling
+// Must be a function to evaluate lazily (not at module load/SSR time)
+function isIOSPWA(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  // Check for iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Check for standalone mode (added to homescreen)
+  const isStandalone =
+    "standalone" in window.navigator &&
+    (window.navigator as unknown as { standalone: boolean }).standalone ===
+      true;
+  return isIOS && isStandalone;
+}
 
 // Create and resume AudioContext - MUST be called during user gesture on iOS Safari
 function initAudioContext(): AudioContext | null {
@@ -61,50 +75,63 @@ function initAudioContext(): AudioContext | null {
  * Unlock audio for iOS PWA mode.
  * Must be called during a user gesture (touch/click).
  * Plays a silent buffer to fully unlock the AudioContext.
+ *
+ * This function is intentionally aggressive - it always attempts unlock
+ * if the context is suspended, because iOS can re-suspend the AudioContext
+ * after backgrounding the PWA. Multiple calls are safe.
  */
 export function unlockAudio(): void {
-  if (isAudioUnlocked) {
-    return;
-  }
-
   try {
+    // Check if existing context is a zombie (closed or broken)
+    if (sharedAudioContext) {
+      if (sharedAudioContext.state === "closed") {
+        // Context is dead, destroy it so we create a fresh one
+        sharedAudioContext = null;
+      }
+    }
+
     const ctx = initAudioContext();
     if (!ctx) {
       return;
     }
 
-    // Create and play a silent buffer to unlock audio on iOS PWA
-    const silentBuffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    source.buffer = silentBuffer;
-    source.connect(ctx.destination);
-    source.start(0);
-
-    // Also try to resume the context explicitly
-    if (ctx.state === "suspended") {
-      void ctx
-        .resume()
-        .then(() => {
-          isAudioUnlocked = true;
-        })
-        .catch(() => {
-          // Silent catch - "failed to start audio device" error in PWA mode
-          // Mark as unlocked anyway since fallback audio works
-          isAudioUnlocked = true;
-        });
-    } else {
-      isAudioUnlocked = true;
+    // If context is running, we're already unlocked
+    if (ctx.state === "running") {
+      return;
     }
 
+    // Context is suspended or in another state - attempt full unlock
+    // Play a silent buffer to trigger audio unlock on iOS
+    try {
+      const silentBuffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = silentBuffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {
+      // Buffer creation/playback failed - context might be zombie
+      // Destroy and try once more with fresh context
+      sharedAudioContext = null;
+      const freshCtx = initAudioContext();
+      if (freshCtx && freshCtx.state !== "running") {
+        void freshCtx.resume().catch(() => {});
+      }
+    }
+
+    // Explicitly resume the context
+    void ctx.resume().catch(() => {
+      // Resume failed - fallback audio will be used instead
+    });
+
     // Also unlock HTML Audio by playing a silent data URI
-    // This is needed for iOS PWA fallback audio
+    // This is critical for iOS PWA fallback audio to work
     try {
       const silentAudio = new Audio(
         "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
       );
       silentAudio.volume = 0;
       void silentAudio.play().catch(() => {
-        // Silent catch
+        // Silent catch - this is expected to fail sometimes
       });
     } catch {
       // Silent fail
@@ -112,6 +139,60 @@ export function unlockAudio(): void {
   } catch {
     // Silent fail - audio just won't work
   }
+}
+
+/**
+ * Resume AudioContext after PWA returns from background.
+ * Should be called on visibilitychange (visible) and pageshow events.
+ *
+ * On iOS PWA, when the app is closed and reopened, the old AudioContext
+ * becomes a "zombie" - it exists in JS memory but the native audio resources
+ * are reclaimed. We must destroy it and create fresh on next user gesture.
+ */
+export function resumeAudioContext(): void {
+  if (!sharedAudioContext) {
+    return;
+  }
+
+  // Try to resume first
+  if (sharedAudioContext.state === "suspended") {
+    void sharedAudioContext.resume().catch(() => {
+      // Resume failed - context might be dead, destroy it
+      destroyAudioContext();
+    });
+  }
+
+  // If context is in "closed" state, it's definitely dead
+  if (sharedAudioContext.state === "closed") {
+    destroyAudioContext();
+  }
+}
+
+/**
+ * Destroy the current AudioContext to force creation of a fresh one.
+ * This is necessary for iOS PWA where the context becomes unusable
+ * after the app is backgrounded/closed.
+ */
+function destroyAudioContext(): void {
+  if (sharedAudioContext) {
+    try {
+      void sharedAudioContext.close();
+    } catch {
+      // Already closed or invalid
+    }
+    sharedAudioContext = null;
+  }
+}
+
+/**
+ * Check if the AudioContext is currently in a playable state.
+ * Useful for debugging PWA audio issues.
+ */
+export function getAudioContextState(): AudioContextState | "unavailable" {
+  if (!sharedAudioContext) {
+    return "unavailable";
+  }
+  return sharedAudioContext.state;
 }
 
 export function useAudio(
@@ -207,36 +288,58 @@ export function useAudio(
       return;
     }
 
-    // Initialize AudioContext on user gesture - this is the key fix for iOS Safari
+    // Stop any currently playing source before starting new playback
+    if (sourceNodeRef.current) {
+      try {
+        sourceNodeRef.current.stop();
+      } catch {
+        // Ignore if already stopped
+      }
+      sourceNodeRef.current = null;
+    }
+
+    // Stop any playing fallback audio
+    if (fallbackAudioRef.current) {
+      fallbackAudioRef.current.pause();
+      fallbackAudioRef.current.currentTime = 0;
+    }
+
+    // iOS PWA STANDALONE MODE: Always use HTML5 Audio
+    // Web Audio API is unreliable in iOS PWA mode after app is closed/reopened
+    // HTML5 Audio is more reliable and works with the mute switch
+    if (isIOSPWA()) {
+      // Add cache-busting timestamp to prevent iOS from serving stale cached audio
+      const cacheBustSrc = `${src}${src.includes("?") ? "&" : "?"}t=${Date.now()}`;
+      const newAudio = new Audio(cacheBustSrc);
+      newAudio.loop = loop;
+      newAudio.volume = volume;
+      fallbackAudioRef.current = newAudio;
+
+      void newAudio.play().catch(() => {
+        // Play failed - likely no user gesture or audio locked
+      });
+      return;
+    }
+
+    // Non-PWA mode: Try Web Audio API first, fall back to HTML5 Audio
     const ctx = initAudioContext();
 
     // Start decoding if not already done
     void decodeAudioBuffer();
 
-    // If no AudioContext or buffer not ready, use HTML Audio fallback
+    // If no AudioContext or buffer not ready, use HTML Audio
     if (!ctx || !audioBufferRef.current) {
-      // Recreate Audio element during user gesture for iOS PWA compatibility
-      // iOS requires Audio elements to be created AND played during same gesture
-      const newAudio = new Audio(src);
+      // Add cache-busting for iOS
+      const cacheBustSrc = `${src}${src.includes("?") ? "&" : "?"}t=${Date.now()}`;
+      const newAudio = new Audio(cacheBustSrc);
       newAudio.loop = loop;
       newAudio.volume = volume;
-
-      // Clean up old fallback
-      if (fallbackAudioRef.current) {
-        fallbackAudioRef.current.pause();
-      }
       fallbackAudioRef.current = newAudio;
 
       void newAudio.play().catch(() => {
         // Fallback play failed, ignore
       });
       return;
-    }
-
-    // Stop fallback if it was playing
-    if (fallbackAudioRef.current) {
-      fallbackAudioRef.current.pause();
-      fallbackAudioRef.current.currentTime = 0;
     }
 
     try {
@@ -267,13 +370,17 @@ export function useAudio(
         };
       }
     } catch {
-      // Web Audio failed, try fallback
-      if (fallbackAudioRef.current) {
-        fallbackAudioRef.current.currentTime = 0;
-        void fallbackAudioRef.current.play().catch(() => {
-          // Fallback play failed too, ignore
-        });
-      }
+      // Web Audio failed, create fresh Audio element for fallback
+      // Must create new element during user gesture for iOS compatibility
+      const cacheBustSrc = `${src}${src.includes("?") ? "&" : "?"}t=${Date.now()}`;
+      const newAudio = new Audio(cacheBustSrc);
+      newAudio.loop = loop;
+      newAudio.volume = volume;
+      fallbackAudioRef.current = newAudio;
+
+      void newAudio.play().catch(() => {
+        // Fallback play failed too, ignore
+      });
     }
   }, [isMuted, loop, volume, src, decodeAudioBuffer]);
 
