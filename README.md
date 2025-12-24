@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Holiday.exe
 
-## Getting Started
+> A love letter, disguised as software.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This is not a demo. Not a portfolio piece. Not a starter template.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This is a Christmas gift I built for my girlfriend, Carolina. A real app. Engineered with care, shipped with intention, and designed to make one person smile on one morning.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What It Is
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Holiday.exe** is a multi-phase interactive experience wrapped in terminal aesthetics and space-mission theming. It runs like a game but feels like a letter.
 
-## Learn More
+The journey:
 
-To learn more about Next.js, take a look at the following resources:
+- A boot sequence that feels like hacking into something important
+- Biometric authentication (fingerprint scanner, passcode entry)
+- A mission briefing: **"RESTORE CONNECTION"**
+- A side-scrolling game where you guide Carolina through parallax star fields
+- A cozy room scene where two characters reunite
+- A memory-match mini-game floating in zero gravity
+- A final encrypted message that decrypts into something sincere
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+It runs natively on iOS via Capacitor. It works offline as a PWA. It has sound design, confetti, snowfall, and hand-tuned animations at 60fps.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Why This Exists
 
-## Deploy on Vercel
+Because building something for someone you love hits different.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Most of us spend our days shipping software for strangers. Features get specced, scoped, shipped, and forgotten. The feedback loop is metrics. The outcome is a dashboard.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+But when you build for one person? When you know exactly who will open it, and you can picture their face while you code? The standards change. Every animation matters. Every sound effect is intentional. The deadline is real: Christmas morning.
+
+This project reminded me why I started building things in the first place.
+
+## Technical Notes
+
+Stack: Next.js 14 (App Router), TypeScript (strict), Tailwind CSS, Framer Motion, Zustand
+
+- Mobile-first, portrait-locked
+- All assets preloaded before the experience starts
+- Audio unlocks on first user interaction (browser policy compliance)
+- Runs as native iOS app via Capacitor with custom splash screen
+- Zero ESLint warnings, zero TypeScript errors, every build passes
+
+## For You
+
+If you've read this far, you might be the type of person who would build something like this.
+
+So here's my invitation: fork it. Remix it. Build your own version for someone you care about.
+
+Strip out Carolina's name and put in someone else's. Replace the otter sprites with whatever inside joke you share. Swap the encrypted letter for your own words. Keep the terminal boot sequence or ditch it entirely.
+
+The code is here. The structure is here. The hard parts (iOS audio, PWA offline support, 60fps mobile animations) are solved.
+
+What you write in the final letter? That's yours.
+
+## A Note
+
+Carolina, if you're reading this README instead of opening the app: close this tab and go to the real thing. The source code isn't the gift.
+
+But also: hi. Merry Christmas.
+
+---
+
+Built with late nights, too much coffee, and the kind of focus that only appears when you're making something that actually matters.
+
+**Dinesh**
