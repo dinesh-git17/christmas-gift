@@ -134,3 +134,48 @@ export const GAME_ASSETS = {
   TOKEN_HEART: "/assets/game/token_heart.png",
   OBSTACLE_GLITCH: "/assets/game/obstacle_glitch.png",
 } as const;
+
+// Memory Match game types and constants
+export type MemoryCardType = "santa" | "reindeer" | "lights" | "elf" | "gold";
+
+export interface MemoryCard {
+  id: string;
+  type: MemoryCardType;
+  isFlipped: boolean;
+  isMatched: boolean;
+  isCenter: boolean;
+}
+
+export const MEMORY_GAME_ASSETS = {
+  CARD_BACK: "/assets/game/card_back.png",
+  CARD_SANTA: "/assets/game/card_santa.png",
+  CARD_REINDEER: "/assets/game/card_reindeer.png",
+  CARD_LIGHTS: "/assets/game/card_lights.png",
+  CARD_ELF: "/assets/game/card_elf.png",
+  CARD_GOLD: "/assets/game/card_gold.png",
+} as const;
+
+export const MEMORY_CARD_IMAGES: Record<MemoryCardType, string> = {
+  santa: MEMORY_GAME_ASSETS.CARD_SANTA,
+  reindeer: MEMORY_GAME_ASSETS.CARD_REINDEER,
+  lights: MEMORY_GAME_ASSETS.CARD_LIGHTS,
+  elf: MEMORY_GAME_ASSETS.CARD_ELF,
+  gold: MEMORY_GAME_ASSETS.CARD_GOLD,
+} as const;
+
+export const MEMORY_GAME_TIMING = {
+  FLIP_DURATION: 500, // Card flip animation duration (ms)
+  MISMATCH_DELAY: 1000, // Time before flipping back mismatched cards (ms)
+  MATCH_DELAY: 300, // Delay after match before allowing next flip (ms)
+  UNLOCK_DELAY: 800, // Delay before center card unlocks after final match (ms)
+  WIN_CONFETTI_DELAY: 500, // Delay before confetti after gold reveal (ms)
+} as const;
+
+export const MEMORY_GAME_PAIRS: MemoryCardType[] = [
+  "santa",
+  "reindeer",
+  "lights",
+  "elf",
+] as const;
+
+export const MEMORY_WIN_MESSAGE = "Happy Holidays!" as const;

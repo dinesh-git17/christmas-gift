@@ -10,6 +10,7 @@ import {
   SnowOverlay,
   LetterView,
   ChoiceMenu,
+  MemoryGame,
   type SceneStep,
 } from "@/components/features/room";
 import { useAudio } from "@/hooks/use-audio";
@@ -27,6 +28,8 @@ export default function RoomPage(): JSX.Element {
   const [hasReadLetter, setHasReadLetter] = useState(false);
   const [hasUnlockedGame, setHasUnlockedGame] = useState(false);
   const [showChoiceMenu, setShowChoiceMenu] = useState(false);
+  const [showMemoryGame, setShowMemoryGame] = useState(false);
+  const [_hasWonMemoryGame, setHasWonMemoryGame] = useState(false);
 
   // Set body background for iOS Safari safe area coloring
   useEffect(() => {
@@ -65,9 +68,9 @@ export default function RoomPage(): JSX.Element {
       // Phase 1: First time - open letter
       setShowLetter(true);
     } else if (!hasUnlockedGame) {
-      // Phase 2: After reading letter - auto-launch game
+      // Phase 2: After reading letter - launch memory game
       setHasUnlockedGame(true);
-      // TODO: Launch matching game (next story)
+      setShowMemoryGame(true);
     } else {
       // Phase 3+: Show choice menu for revisiting
       setShowChoiceMenu(true);
@@ -92,7 +95,16 @@ export default function RoomPage(): JSX.Element {
 
   const handleChoiceSelectGame = useCallback((): void => {
     setShowChoiceMenu(false);
-    // TODO: Navigate to matching game (next story)
+    setShowMemoryGame(true);
+  }, []);
+
+  // Memory game handlers
+  const handleMemoryGameClose = useCallback((): void => {
+    setShowMemoryGame(false);
+  }, []);
+
+  const handleMemoryGameWin = useCallback((): void => {
+    setHasWonMemoryGame(true);
   }, []);
 
   // Get current subtitle text based on step
@@ -189,6 +201,13 @@ export default function RoomPage(): JSX.Element {
         onClose={handleChoiceMenuClose}
         onSelectLetter={handleChoiceSelectLetter}
         onSelectGame={handleChoiceSelectGame}
+      />
+
+      {/* Memory Match mini-game */}
+      <MemoryGame
+        isOpen={showMemoryGame}
+        onClose={handleMemoryGameClose}
+        onWin={handleMemoryGameWin}
       />
     </div>
   );
