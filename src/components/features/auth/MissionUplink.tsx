@@ -77,7 +77,7 @@ export function MissionUplink({
   }, [onInitialize]);
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden overscroll-none p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

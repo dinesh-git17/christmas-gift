@@ -626,13 +626,14 @@ export function MemoryGame({
             ))}
           </div>
 
-          {/* Close Button - Floating top right */}
+          {/* Close Button - Floating top right, below safe area */}
           <motion.button
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 min-h-[44px] min-w-[44px] rounded-full border border-white/10 bg-white/5 p-3 text-white/50 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-white"
+            className="absolute right-4 z-10 min-h-[44px] min-w-[44px] rounded-full border border-white/10 bg-white/5 p-3 text-white/50 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-white"
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
             aria-label="Close game"
           >
             <X className="h-5 w-5" />

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export type GameStatus = "idle" | "countdown" | "playing" | "won" | "lost";
 
@@ -44,15 +43,8 @@ interface AuthState {
   resetAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      authStage: "LOCKED",
-      setAuthStage: (authStage) => set({ authStage }),
-      resetAuth: () => set({ authStage: "LOCKED" }),
-    }),
-    {
-      name: "north-pole-auth",
-    }
-  )
-);
+export const useAuthStore = create<AuthState>()((set) => ({
+  authStage: "LOCKED",
+  setAuthStage: (authStage) => set({ authStage }),
+  resetAuth: () => set({ authStage: "LOCKED" }),
+}));

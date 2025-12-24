@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Utility scripts (CommonJS, not part of app source)
     "scripts/**",
+    // Capacitor iOS build output
+    "ios/**",
   ]),
   {
     rules: {

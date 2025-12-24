@@ -37,7 +37,10 @@ export function GameHUD({ score }: GameHUDProps): JSX.Element {
   const formattedTarget = WIN_SCORE.toString().padStart(2, "0");
 
   return (
-    <div className="absolute top-6 left-1/2 z-40 -translate-x-1/2">
+    <div
+      className="absolute left-1/2 z-40 -translate-x-1/2"
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}
+    >
       {/* Glass Pill Container */}
       <div className="shadow-terminal-green/10 bg-midnight/60 flex items-center gap-3 rounded-full border border-white/10 px-5 py-2.5 shadow-lg backdrop-blur-md">
         {/* Heart Token Icon */}
