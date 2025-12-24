@@ -13,7 +13,7 @@ import {
   MemoryGame,
   type SceneStep,
 } from "@/components/features/room";
-import { useAudio } from "@/hooks/use-audio";
+import { useAudio, unlockAudio } from "@/hooks/use-audio";
 import { AUDIO_PATHS, ROOM_SCRIPT, ROOM_TIMING } from "@/lib/constants";
 
 import type { JSX } from "react";
@@ -29,7 +29,6 @@ export default function RoomPage(): JSX.Element {
   const [hasUnlockedGame, setHasUnlockedGame] = useState(false);
   const [showChoiceMenu, setShowChoiceMenu] = useState(false);
   const [showMemoryGame, setShowMemoryGame] = useState(false);
-  const [_hasWonMemoryGame, setHasWonMemoryGame] = useState(false);
 
   // Set body background for iOS Safari safe area coloring
   useEffect(() => {
@@ -56,6 +55,8 @@ export default function RoomPage(): JSX.Element {
   // Start the experience on tap
   const handleStart = useCallback((): void => {
     if (!hasStarted) {
+      // Unlock audio for iOS PWA - must be called during user gesture
+      unlockAudio();
       setHasStarted(true);
       lofiMusic.preload();
       lofiMusic.play();
@@ -104,8 +105,9 @@ export default function RoomPage(): JSX.Element {
   }, []);
 
   const handleMemoryGameWin = useCallback((): void => {
-    setHasWonMemoryGame(true);
-  }, []);
+    // Stop music - navigation is handled by MemoryGame component
+    lofiMusic.stop();
+  }, [lofiMusic]);
 
   // Get current subtitle text based on step
   const currentText = ROOM_SCRIPT[currentStep]?.text ?? "";

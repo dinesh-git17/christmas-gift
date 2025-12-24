@@ -25,6 +25,11 @@ export const AUDIO_PATHS = {
   COLLECT: "/assets/audio/collect.mp3",
   LOFI_CHRISTMAS: "/assets/audio/lofi_christmas.mp3",
   COUNTDOWN: "/assets/audio/countdown.mp3",
+  LOVE_STORY: "/assets/audio/love_story.mp3",
+  DECRYPT: "/assets/audio/decrypt.mp3",
+  CARD_WIN: "/assets/audio/card_win.mp3",
+  SUCCESS: "/assets/audio/sucess.mp3",
+  ERROR: "/assets/audio/error.mp3",
 } as const;
 
 // Game physics constants
@@ -167,8 +172,10 @@ export const MEMORY_GAME_TIMING = {
   FLIP_DURATION: 500, // Card flip animation duration (ms)
   MISMATCH_DELAY: 1000, // Time before flipping back mismatched cards (ms)
   MATCH_DELAY: 300, // Delay after match before allowing next flip (ms)
-  UNLOCK_DELAY: 800, // Delay before center card unlocks after final match (ms)
+  UNLOCK_DELAY: 1000, // Delay before center card unlocks after final match (ms)
   WIN_CONFETTI_DELAY: 500, // Delay before confetti after gold reveal (ms)
+  SCALE_UP_DURATION: 800, // Duration for gold card scale up animation (ms)
+  COUNTDOWN_START_DELAY: 2000, // Delay after scale up before countdown starts (ms)
 } as const;
 
 export const MEMORY_GAME_PAIRS: MemoryCardType[] = [
@@ -179,3 +186,81 @@ export const MEMORY_GAME_PAIRS: MemoryCardType[] = [
 ] as const;
 
 export const MEMORY_WIN_MESSAGE = "Happy Holidays!" as const;
+
+// Intel page constants - Phase 7 Final Reveal
+export const INTEL_BRIEFING = {
+  HEADER: "CRITICAL INTELLIGENCE GATHERED",
+  BODY: `INTERCEPT REPORT: A high-density encrypted signal has been detected from a remote timeline.
+
+Our cryptography agents have worked tirelessly to decrypt this payload. It contains vital data regarding Subject: Dinn.
+
+WARNING: Content exhibits extreme emotional resonance. Proceed with urgency. The integrity of the connection depends on you.`,
+  CTA: "INITIATE DECRYPTION PROTOCOL",
+} as const;
+
+export const INTEL_BOOT_SEQUENCE = [
+  "booting connection...",
+  "syncing hearts...",
+  "latency: irrelevant",
+  "status: locked on you",
+] as const;
+
+export const INTEL_BOOT_TIMING = {
+  DECRYPT_DURATION_MS: 2500, // Time to decrypt each line
+  FINAL_HOLD_MS: 1500, // Hold final line before transitioning
+  DECRYPT_INTERVAL_MS: 50, // How often to update scrambled characters
+} as const;
+
+export const INTEL_LETTER = `hey carolina,
+
+if you're reading this, it means you found the hidden level.
+not bad, my favorite player.
+
+i wish i could say this is just code,
+but the truth is...
+every line here runs straight from my heart.
+
+distance tried to introduce lag,
+different time zones tried to desync us,
+but somehow we keep reconnecting stronger every time.
+no crashes. no rage quits.
+just us, loading again and again.
+
+you're my favorite constant
+in a world full of variables.
+the one thing i never want to refactor.
+
+loving you feels like finding the perfect build
+after a thousand test runs.
+calm. exciting. safe.
+like i finally unlocked the right ending.
+
+when things get quiet,
+when the screen goes dark,
+you're still there in my mind,
+glowing like a cursor waiting for the next command.
+
+i don't know what levels come next,
+but i know this:
+i want to play them all with you.
+side by side. co-op mode. forever enabled.
+
+no save file needed.
+no resets.
+just me, choosing you
+again
+and again
+and again.
+
+connection secured.
+game not over.
+
+i love you endlessly` as const;
+
+export const INTEL_LETTER_TIMING = {
+  CHAR_DELAY_MS: 70, // Typewriter speed for letter (slowed to 0.5x)
+  GLOW_DURATION_MS: 600, // Duration for the glow effect
+  FADE_OUT_DURATION_MS: 800, // Duration for decryption lines to fade out
+  DARK_PAUSE_MS: 1500, // Empty screen pause before music starts
+  MUSIC_LEAD_IN_MS: 1500, // Wait after music starts before letter begins
+} as const;

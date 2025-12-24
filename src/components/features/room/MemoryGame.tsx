@@ -3,6 +3,7 @@
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Snowfall from "react-snowfall";
 
@@ -18,6 +19,10 @@ import {
 
 import type { MemoryCard } from "@/lib/constants";
 import type { JSX } from "react";
+
+// Countdown sequence for win screen
+const WIN_COUNTDOWN_START = 5;
+const WIN_COUNTDOWN_INTERVAL_MS = 1000;
 
 export interface MemoryGameProps {
   isOpen: boolean;
@@ -149,6 +154,7 @@ interface FloatingCardProps {
   isLocked: boolean;
   isDisabled: boolean;
   isCenterUnlocked: boolean;
+  hasWon: boolean;
 }
 
 function FloatingCard({
@@ -158,11 +164,13 @@ function FloatingCard({
   isLocked,
   isDisabled,
   isCenterUnlocked,
+  hasWon,
 }: FloatingCardProps): JSX.Element | null {
   const showFront = card.isFlipped || card.isMatched;
   const cardImage = MEMORY_CARD_IMAGES[card.type];
   const isGoldAndUnlocked =
     card.isCenter && isCenterUnlocked && !card.isFlipped;
+  const isWinningCard = card.isCenter && hasWon;
 
   // Matched cards dissolve - render invisible placeholder to maintain grid
   if (card.isMatched && !card.isCenter) {
@@ -174,9 +182,9 @@ function FloatingCard({
       layout
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{
-        scale: 1,
+        scale: isWinningCard ? 2.2 : 1,
         opacity: 1,
-        y: [0, -8, 0],
+        y: isWinningCard ? 0 : [0, -8, 0],
       }}
       exit={{
         scale: 1.3,
@@ -184,16 +192,24 @@ function FloatingCard({
         transition: { duration: 0.4, ease: "easeOut" },
       }}
       transition={{
-        scale: { duration: 0.3 },
-        opacity: { duration: 0.3 },
-        y: {
-          duration: floatConfig.duration,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: floatConfig.delay,
+        scale: {
+          duration: isWinningCard
+            ? MEMORY_GAME_TIMING.SCALE_UP_DURATION / 1000
+            : 0.3,
+          ease: [0.34, 1.56, 0.64, 1], // Custom spring-like easing for smooth scale
         },
+        opacity: { duration: 0.3 },
+        y: isWinningCard
+          ? { duration: MEMORY_GAME_TIMING.SCALE_UP_DURATION / 1000 }
+          : {
+              duration: floatConfig.duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: floatConfig.delay,
+            },
       }}
       className="aspect-square w-full"
+      style={{ zIndex: isWinningCard ? 50 : undefined }}
     >
       <motion.button
         onClick={onClick}
@@ -307,6 +323,7 @@ export function MemoryGame({
   onClose,
   onWin,
 }: MemoryGameProps): JSX.Element {
+  const router = useRouter();
   const [cards, setCards] = useState<MemoryCard[]>(() => generateDeck());
   const [floatConfigs, setFloatConfigs] = useState<FloatConfig[]>(() =>
     generateFloatConfigs()
@@ -319,10 +336,13 @@ export function MemoryGame({
   const [matchedPairs, setMatchedPairs] = useState(0);
   const [isCenterUnlocked, setIsCenterUnlocked] = useState(false);
   const [hasWon, setHasWon] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const collectSound = useAudio(AUDIO_PATHS.COLLECT, { volume: 0.6 });
-  const successSound = useAudio(AUDIO_PATHS.SUCCESS_UNLOCK, { volume: 0.7 });
-  const errorSound = useAudio(AUDIO_PATHS.ERROR_HIT, { volume: 0.3 });
+  const successSound = useAudio(AUDIO_PATHS.SUCCESS, { volume: 0.7 });
+  const errorSound = useAudio(AUDIO_PATHS.ERROR, { volume: 0.5 });
+  const cardWinSound = useAudio(AUDIO_PATHS.CARD_WIN, { volume: 0.7 });
+  const goldRevealSound = useAudio(AUDIO_PATHS.SUCCESS_UNLOCK, { volume: 0.7 });
 
   // Reset game when opened
   const wasOpenRef = useRef(isOpen);
@@ -336,6 +356,7 @@ export function MemoryGame({
         setMatchedPairs(0);
         setIsCenterUnlocked(false);
         setHasWon(false);
+        setCountdown(null);
       });
     }
     wasOpenRef.current = isOpen;
@@ -346,20 +367,52 @@ export function MemoryGame({
     collectSound.preload();
     successSound.preload();
     errorSound.preload();
-  }, [collectSound, successSound, errorSound]);
+    cardWinSound.preload();
+    goldRevealSound.preload();
+  }, [collectSound, successSound, errorSound, cardWinSound, goldRevealSound]);
 
   // Unlock center card when all pairs are matched
   useEffect(() => {
     if (matchedPairs === 4 && !isCenterUnlocked) {
       const timer = setTimeout(() => {
         setIsCenterUnlocked(true);
-        successSound.play();
+        cardWinSound.play();
       }, MEMORY_GAME_TIMING.UNLOCK_DELAY);
 
       return (): void => clearTimeout(timer);
     }
     return undefined;
-  }, [matchedPairs, isCenterUnlocked, successSound]);
+  }, [matchedPairs, isCenterUnlocked, cardWinSound]);
+
+  // Start countdown when won, redirect to /intel when done
+  useEffect(() => {
+    if (hasWon && countdown === null) {
+      // Start countdown after scale up animation + delay
+      const totalDelay =
+        MEMORY_GAME_TIMING.SCALE_UP_DURATION +
+        MEMORY_GAME_TIMING.COUNTDOWN_START_DELAY;
+      const startTimer = setTimeout(() => {
+        setCountdown(WIN_COUNTDOWN_START);
+      }, totalDelay);
+      return (): void => clearTimeout(startTimer);
+    }
+
+    if (countdown !== null && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, WIN_COUNTDOWN_INTERVAL_MS);
+      return (): void => clearTimeout(timer);
+    }
+
+    if (countdown === 0) {
+      // Countdown finished, navigate to intel
+      onWin?.();
+      // Use replace instead of push for better PWA standalone mode compatibility
+      router.replace("/intel");
+    }
+
+    return undefined;
+  }, [hasWon, countdown, router, onWin]);
 
   // Fire massive confetti for win
   const fireConfetti = useCallback((): void => {
@@ -445,8 +498,8 @@ export function MemoryGame({
         setTimeout(() => {
           setHasWon(true);
           fireConfetti();
-          successSound.play();
-          onWin?.();
+          goldRevealSound.play();
+          // onWin is called after countdown in the countdown effect
         }, MEMORY_GAME_TIMING.WIN_CONFETTI_DELAY);
 
         return;
@@ -505,8 +558,8 @@ export function MemoryGame({
       isCenterUnlocked,
       errorSound,
       successSound,
+      goldRevealSound,
       fireConfetti,
-      onWin,
     ]
   );
 
@@ -587,29 +640,25 @@ export function MemoryGame({
 
           {/* Game Container */}
           <div className="relative flex flex-col items-center gap-4 px-4">
-            {/* Header */}
+            {/* Header - fades out when won */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              animate={{ opacity: hasWon ? 0 : 1, y: 0 }}
+              transition={{ delay: hasWon ? 0 : 0.2, duration: 0.4 }}
               className="text-center"
             >
               <h2 className="text-terminal-green font-mono text-base font-bold tracking-[0.2em] sm:text-lg">
                 MEMORY MATCH
               </h2>
               <motion.p
-                key={
-                  hasWon ? "won" : isCenterUnlocked ? "unlock" : matchedPairs
-                }
+                key={isCenterUnlocked ? "unlock" : matchedPairs}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="mt-1 text-xs text-white/50 sm:text-sm"
               >
-                {hasWon
-                  ? MEMORY_WIN_MESSAGE
-                  : isCenterUnlocked
-                    ? "✨ Tap the golden card! ✨"
-                    : `Match all pairs (${matchedPairs}/4)`}
+                {isCenterUnlocked
+                  ? "✨ Tap the golden card! ✨"
+                  : `Match all pairs (${matchedPairs}/4)`}
               </motion.p>
             </motion.div>
 
@@ -632,46 +681,70 @@ export function MemoryGame({
                     isLocked={card.isCenter && !isCenterUnlocked}
                     isDisabled={isProcessing || hasWon}
                     isCenterUnlocked={isCenterUnlocked}
+                    hasWon={hasWon}
                   />
                 ))}
               </AnimatePresence>
             </motion.div>
+          </div>
 
-            {/* Win overlay with message and button */}
-            <AnimatePresence>
-              {hasWon && (
+          {/* Win overlay - Happy Holidays on top, countdown below - FULL SCREEN */}
+          <AnimatePresence>
+            {hasWon && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-between py-20"
+              >
+                {/* Happy Holidays text - TOP */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
+                  transition={{
+                    delay: MEMORY_GAME_TIMING.SCALE_UP_DURATION / 1000 + 0.3,
+                    duration: 0.5,
+                  }}
                   className="text-center"
                 >
-                  <motion.p
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{
-                      delay: 0.5,
-                      type: "spring",
-                      stiffness: 200,
-                    }}
-                    className="text-3xl font-bold text-yellow-400 drop-shadow-lg sm:text-4xl"
-                  >
+                  <p className="text-terminal-green font-mono text-2xl font-bold tracking-wider drop-shadow-lg sm:text-3xl">
                     {MEMORY_WIN_MESSAGE}
-                  </motion.p>
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1, duration: 0.3 }}
-                    onClick={onClose}
-                    className="mt-6 min-h-[48px] min-w-[140px] rounded-xl border border-yellow-400/30 bg-yellow-500/20 px-8 py-3 font-mono text-lg text-yellow-400 backdrop-blur-sm transition-all hover:border-yellow-400/50 hover:bg-yellow-500/30"
-                  >
-                    Continue
-                  </motion.button>
+                  </p>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+                {/* Spacer for card */}
+                <div className="flex-1" />
+
+                {/* Countdown sequence - BOTTOM */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    delay:
+                      (MEMORY_GAME_TIMING.SCALE_UP_DURATION +
+                        MEMORY_GAME_TIMING.COUNTDOWN_START_DELAY) /
+                      1000,
+                    duration: 0.4,
+                  }}
+                  className="font-mono text-sm text-white/70 sm:text-base"
+                >
+                  {countdown !== null ? (
+                    <motion.span
+                      key={countdown}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Intercepting signal {countdown} ...
+                    </motion.span>
+                  ) : (
+                    <span className="opacity-0">Intercepting signal ...</span>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

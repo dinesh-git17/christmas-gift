@@ -43,7 +43,11 @@ function initAudioContext(): AudioContext | null {
     // Resume if suspended (must happen in same call stack as user gesture)
     if (sharedAudioContext.state === "suspended") {
       // Use void to handle promise without await (gesture must be sync)
-      void sharedAudioContext.resume();
+      // Catch any errors silently - audio will still work via fallback
+      void sharedAudioContext.resume().catch(() => {
+        // Silent catch - "failed to start audio device" error in PWA mode
+        // Audio will still play via HTML Audio fallback
+      });
     }
 
     return sharedAudioContext;
@@ -78,11 +82,32 @@ export function unlockAudio(): void {
 
     // Also try to resume the context explicitly
     if (ctx.state === "suspended") {
-      void ctx.resume().then(() => {
-        isAudioUnlocked = true;
-      });
+      void ctx
+        .resume()
+        .then(() => {
+          isAudioUnlocked = true;
+        })
+        .catch(() => {
+          // Silent catch - "failed to start audio device" error in PWA mode
+          // Mark as unlocked anyway since fallback audio works
+          isAudioUnlocked = true;
+        });
     } else {
       isAudioUnlocked = true;
+    }
+
+    // Also unlock HTML Audio by playing a silent data URI
+    // This is needed for iOS PWA fallback audio
+    try {
+      const silentAudio = new Audio(
+        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+      );
+      silentAudio.volume = 0;
+      void silentAudio.play().catch(() => {
+        // Silent catch
+      });
+    } catch {
+      // Silent fail
     }
   } catch {
     // Silent fail - audio just won't work
@@ -190,12 +215,21 @@ export function useAudio(
 
     // If no AudioContext or buffer not ready, use HTML Audio fallback
     if (!ctx || !audioBufferRef.current) {
+      // Recreate Audio element during user gesture for iOS PWA compatibility
+      // iOS requires Audio elements to be created AND played during same gesture
+      const newAudio = new Audio(src);
+      newAudio.loop = loop;
+      newAudio.volume = volume;
+
+      // Clean up old fallback
       if (fallbackAudioRef.current) {
-        fallbackAudioRef.current.currentTime = 0;
-        void fallbackAudioRef.current.play().catch(() => {
-          // Fallback play failed, ignore
-        });
+        fallbackAudioRef.current.pause();
       }
+      fallbackAudioRef.current = newAudio;
+
+      void newAudio.play().catch(() => {
+        // Fallback play failed, ignore
+      });
       return;
     }
 
@@ -241,7 +275,7 @@ export function useAudio(
         });
       }
     }
-  }, [isMuted, loop, volume, decodeAudioBuffer]);
+  }, [isMuted, loop, volume, src, decodeAudioBuffer]);
 
   const pause = useCallback((): void => {
     // Web Audio API doesn't have pause - must stop and recreate
