@@ -275,3 +275,65 @@ export const INTEL_LETTER_TIMING = {
   DARK_PAUSE_MS: 1500, // Empty screen pause before music starts
   MUSIC_LEAD_IN_MS: 1500, // Wait after music starts before letter begins
 } as const;
+
+// Cipher game constants - Phase 8 Terminal Wordle
+export type CipherTileState =
+  | "empty"
+  | "filled"
+  | "correct"
+  | "present"
+  | "absent";
+
+export interface CipherLevel {
+  word: string;
+  hints: readonly string[];
+}
+
+export const CIPHER_LEVELS: readonly CipherLevel[] = [
+  {
+    word: "YOURS",
+    hints: ["Something I am...", "Starts with Y, ends with S.", "Y O U R S"],
+  },
+  {
+    word: "LOVER",
+    hints: ["What you are to me.", "Starts with L, ends with R.", "L O V E R"],
+  },
+  {
+    word: "ADORE",
+    hints: ["What I do endlessly.", "Starts with A, ends with E.", "A D O R E"],
+  },
+] as const;
+
+export const CIPHER_CONFIG = {
+  WORD_LENGTH: 5,
+  MAX_GUESSES: 4,
+  TILE_FLIP_DELAY_MS: 100, // Delay between each tile flip (faster)
+  TILE_FLIP_DURATION_MS: 400, // Duration of tile flip animation (faster)
+  SHAKE_DURATION_MS: 400, // Duration of shake animation for invalid guess
+  GRID_FADE_DURATION_MS: 400, // Duration for grid fade in/out
+  DINN_DISPLAY_DURATION_MS: 2000, // How long Dinn message shows
+  LEVEL_TRANSITION_DELAY_MS: 800, // Delay before transitioning to next level
+  VICTORY_DELAY_MS: 1500, // Delay before victory modal appears
+  KEYBOARD_ROWS: [
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"],
+  ] as const,
+} as const;
+
+// Sweet messages for level completion
+export const CIPHER_SUCCESS_MESSAGES = [
+  "You know me so well...",
+  "My heart is yours.",
+  "Forever and always.",
+] as const;
+
+export const CIPHER_MESSAGES = {
+  LEVEL_COMPLETE: "LEVEL DECRYPTED",
+  ALL_LEVELS_COMPLETE: "SYSTEM FULLY UNLOCKED",
+  INVALID_LENGTH: "Not enough letters",
+  TRY_AGAIN: "Resetting cipher...",
+} as const;
+
+// Background color for cipher page (matches intel)
+export const CIPHER_BG_COLOR = "#0f0f11";
