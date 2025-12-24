@@ -20,7 +20,8 @@ The journey:
 - A side-scrolling game where you guide Carolina through parallax star fields
 - A cozy room scene where two characters reunite
 - A memory-match mini-game floating in zero gravity
-- A final encrypted message that decrypts into something sincere
+- An encrypted intel briefing that decrypts into a love letter
+- A terminal Wordle game: three romantic words to fully unlock the connection
 
 It runs natively on iOS via Capacitor. It works offline as a PWA. It has sound design, confetti, snowfall, and hand-tuned animations at 60fps.
 
