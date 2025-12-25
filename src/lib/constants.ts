@@ -337,3 +337,31 @@ export const CIPHER_MESSAGES = {
 
 // Background color for cipher page (matches intel)
 export const CIPHER_BG_COLOR = "#0f0f11";
+
+// =============================================================================
+// Phase 9: Final Proposal
+// =============================================================================
+
+export const PROPOSAL_CONFIG = {
+  /** Phone number for SMS deep link (from env) */
+  PHONE_NUMBER: process.env.NEXT_PUBLIC_DINN_PHONE ?? "",
+  /** Pre-filled SMS message body */
+  SMS_BODY: "Mission Complete. Yes, forever.",
+} as const;
+
+export const PROPOSAL_APPRECIATION = {
+  HEADER: "Agent Carolina,",
+  LINES: [
+    "You have navigated every glitch, bypassed every firewall, and decrypted the truth.",
+    "This mission was never just about code. It was about finding the one person who makes the system worth saving.",
+    "The target is secured. He is waiting for you.",
+  ],
+  CTA: "RESCUE DINN",
+} as const;
+
+export const PROPOSAL_CERTIFICATE = {
+  HEADER: "MISSION ACCOMPLISHED",
+  QUESTION: "Will you be mine forever and always?",
+  CTA: "COMPLETE MISSION",
+  FOOTER: "Certificate of Eternal Connection",
+} as const;
