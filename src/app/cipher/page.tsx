@@ -1,10 +1,16 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { Unlock } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect, useMemo } from "react";
 
+import {
+  MatrixRain,
+  FinalBootSequence,
+  DecryptionLetter,
+} from "@/components/features/effects";
 import { useAudio, unlockAudio } from "@/hooks";
 import {
   AUDIO_PATHS,
@@ -29,6 +35,159 @@ type KeyboardKeyStates = Record<string, CipherTileState>;
 
 // Dinn feedback types
 type DinnMode = "success" | "hint" | null;
+
+/**
+ * ClassifiedBriefing - Mission dossier card before game starts
+ */
+interface ClassifiedBriefingProps {
+  onProceed: () => void;
+}
+
+function ClassifiedBriefing({
+  onProceed,
+}: ClassifiedBriefingProps): JSX.Element {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-6"
+    >
+      {/* Dossier folder */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0, rotateX: -15 }}
+        animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 120, damping: 20 }}
+        className="relative w-full max-w-sm"
+      >
+        {/* Folder tab */}
+        <div className="absolute -top-4 left-6 h-6 w-24 rounded-t-md bg-amber-700/90" />
+
+        {/* Main folder body */}
+        <div className="relative overflow-hidden rounded-lg border-2 border-amber-800/60 bg-gradient-to-br from-amber-100 to-amber-200 p-6 shadow-2xl">
+          {/* Paper texture overlay */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+            }}
+          />
+
+          {/* CLASSIFIED stamp */}
+          <motion.div
+            initial={{ scale: 2, opacity: 0, rotate: -20 }}
+            animate={{ scale: 1, opacity: 1, rotate: -12 }}
+            transition={{
+              delay: 0.5,
+              type: "spring",
+              stiffness: 200,
+              damping: 15,
+            }}
+            className="absolute top-4 right-4"
+          >
+            <div className="rounded border-4 border-red-600 px-3 py-1 font-mono text-sm font-black tracking-wider text-red-600 uppercase">
+              CLASSIFIED
+            </div>
+          </motion.div>
+
+          {/* Content */}
+          <div className="relative z-10 pt-8">
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6"
+            >
+              <p className="font-mono text-xs tracking-widest text-amber-700 uppercase">
+                Mission Briefing
+              </p>
+              <h2 className="mt-1 font-mono text-xl font-bold text-gray-900">
+                FINAL OBJECTIVE
+              </h2>
+            </motion.div>
+
+            {/* Mission details */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="space-y-4 font-mono text-sm leading-relaxed text-gray-800"
+            >
+              <p>Decrypt the encoded transmission.</p>
+              <div className="rounded bg-amber-300/50 p-3">
+                <p className="font-semibold text-gray-900">Parameters:</p>
+                <ul className="mt-2 space-y-1 text-gray-700">
+                  <li>• 3 encrypted words</li>
+                  <li>• 4 attempts per word</li>
+                  <li>• No second chances</li>
+                </ul>
+              </div>
+            </motion.div>
+
+            {/* Proceed button */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onProceed}
+              className="mt-6 w-full rounded bg-gray-900 py-3 font-mono text-sm font-bold tracking-wider text-amber-100 uppercase transition-colors hover:bg-gray-800"
+              type="button"
+            >
+              Accept Mission
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/**
+ * MatrixGlitch - Falling matrix characters effect
+ */
+const MATRIX_COLUMNS = 20;
+const MATRIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+
+// Pre-computed random values for matrix effect
+const MATRIX_COLUMN_DATA = Array.from({ length: MATRIX_COLUMNS }).map(
+  (_, i) => ({
+    duration: 1.5 + ((i * 7) % 10) / 10,
+    delay: ((i * 3) % 8) / 10,
+    chars: Array.from({ length: 15 }).map(
+      (_, j) => MATRIX_CHARS[(i * 13 + j * 7) % MATRIX_CHARS.length]
+    ),
+  })
+);
+
+function MatrixGlitch(): JSX.Element {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {MATRIX_COLUMN_DATA.map((col, i) => (
+        <motion.div
+          key={i}
+          initial={{ y: "-100%", opacity: 0 }}
+          animate={{ y: "100vh", opacity: [0, 1, 1, 0] }}
+          transition={{
+            duration: col.duration,
+            delay: col.delay,
+            ease: "linear",
+          }}
+          className="text-terminal-green/60 absolute font-mono text-sm"
+          style={{ left: `${(i / MATRIX_COLUMNS) * 100}%` }}
+        >
+          {col.chars.map((char, j) => (
+            <div key={j} className="opacity-80">
+              {char}
+            </div>
+          ))}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Evaluates a guess against the target word
@@ -375,15 +534,17 @@ function CipherKeyboard({
 }
 
 /**
- * VictoryModal
+ * VictoryModal - System unlocked card with matrix glitch
  */
 interface VictoryModalProps {
   isVisible: boolean;
+  showCard: boolean;
   onContinue: () => void;
 }
 
 function VictoryModal({
   isVisible,
+  showCard,
   onContinue,
 }: VictoryModalProps): JSX.Element {
   return (
@@ -393,44 +554,85 @@ function VictoryModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="bg-midnight/90 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+          className="bg-midnight fixed inset-0 z-50"
         >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="border-terminal-green/40 bg-midnight/80 relative mx-4 flex max-w-sm flex-col items-center gap-6 rounded-xl border p-8 text-center backdrop-blur-md"
-          >
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 20px rgba(0, 255, 65, 0.3)",
-                  "0 0 40px rgba(0, 255, 65, 0.5)",
-                  "0 0 20px rgba(0, 255, 65, 0.3)",
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 rounded-xl"
-            />
-            <div className="text-5xl">🔓</div>
-            <div>
-              <h2 className="text-terminal-green mb-2 font-mono text-xl font-bold sm:text-2xl">
-                {CIPHER_MESSAGES.ALL_LEVELS_COMPLETE}
-              </h2>
-              <p className="text-terminal-green/70 font-mono text-sm">
-                Connection fully synchronized
-              </p>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onContinue}
-              className="bg-terminal-green text-midnight min-h-[48px] w-full rounded-lg px-8 py-3 font-mono font-bold transition-colors hover:bg-white"
-              type="button"
-            >
-              Continue
-            </motion.button>
-          </motion.div>
+          {/* Matrix glitch effect */}
+          <MatrixGlitch />
+
+          {/* Card container */}
+          <div className="relative flex h-full items-center justify-center p-6">
+            <AnimatePresence>
+              {showCard && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="border-terminal-green/40 bg-midnight/80 w-full max-w-md rounded-lg border-2 p-6 backdrop-blur-sm"
+                >
+                  {/* Header */}
+                  <div className="border-terminal-green/30 mb-6 flex items-center gap-3 border-b pb-4">
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <Unlock className="text-terminal-green h-5 w-5" />
+                    </motion.div>
+                    <div>
+                      <div className="text-terminal-green/60 font-mono text-xs tracking-widest uppercase">
+                        System Status
+                      </div>
+                      <h1 className="text-terminal-green font-mono text-xl font-bold">
+                        FULLY UNLOCKED
+                      </h1>
+                    </div>
+                  </div>
+
+                  {/* Terminal output */}
+                  <div className="bg-terminal-green/5 mb-6 rounded-md p-4 font-mono text-sm">
+                    <div className="text-terminal-green/70">
+                      {"> DECRYPTION COMPLETE"}
+                    </div>
+                    <div className="text-terminal-green/70">
+                      {"> ALL CIPHERS SOLVED"}
+                    </div>
+                    <div className="text-terminal-green">
+                      {"> STATUS: CONNECTION SYNCHRONIZED"}
+                    </div>
+                  </div>
+
+                  {/* Message */}
+                  <div className="mb-6">
+                    <p className="text-terminal-green/90 font-mono text-sm leading-relaxed">
+                      {CIPHER_MESSAGES.ALL_LEVELS_COMPLETE}
+                    </p>
+                    <p className="text-terminal-green/70 mt-3 font-mono text-sm">
+                      Final transmission awaits.
+                    </p>
+                  </div>
+
+                  {/* CTA Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onContinue}
+                    type="button"
+                    className="bg-terminal-green text-midnight relative min-h-[56px] w-full overflow-hidden rounded-lg py-4 font-mono text-lg font-bold transition-colors hover:bg-white"
+                  >
+                    {/* Pulsing glow effect */}
+                    <motion.div
+                      animate={{
+                        opacity: [0.3, 0.6, 0.3],
+                        scale: [1, 1.02, 1],
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="bg-terminal-green absolute inset-0 rounded-lg blur-md"
+                    />
+                    <span className="relative z-10">CONTINUE</span>
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -452,10 +654,14 @@ export default function CipherPage(): JSX.Element {
   const [keyStates, setKeyStates] = useState<KeyboardKeyStates>({});
 
   // UI state
+  const [showBriefing, setShowBriefing] = useState(true);
   const [shakeRow, setShakeRow] = useState(-1);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealingRow, setRevealingRow] = useState(-1);
   const [showVictory, setShowVictory] = useState(false);
+  const [showVictoryCard, setShowVictoryCard] = useState(false);
+  const [showMatrixSequence, setShowMatrixSequence] = useState(false);
+  const [showDecryptionLetter, setShowDecryptionLetter] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Dinn feedback state
@@ -532,7 +738,7 @@ export default function CipherPage(): JSX.Element {
   // Handle keyboard input
   const handleKeyPress = useCallback(
     (key: string): void => {
-      if (isProcessing || isRevealing || dinnMode) {
+      if (showBriefing || isProcessing || isRevealing || dinnMode) {
         return;
       }
 
@@ -603,11 +809,15 @@ export default function CipherPage(): JSX.Element {
                 setIsProcessing(false);
               });
             } else {
-              // Final level - show Dinn then victory
+              // Final level - show Dinn then victory with matrix effect
               showDinnFeedback("success", successMessage, () => {
                 successSound.play();
                 setShowVictory(true);
                 setIsProcessing(false);
+                // Show card after matrix glitch plays
+                setTimeout(() => {
+                  setShowVictoryCard(true);
+                }, 1200);
               });
             }
           } else {
@@ -659,6 +869,7 @@ export default function CipherPage(): JSX.Element {
       }
     },
     [
+      showBriefing,
       currentGuess,
       currentRow,
       currentLevel,
@@ -694,8 +905,25 @@ export default function CipherPage(): JSX.Element {
   }, [handleKeyPress]);
 
   const handleVictoryContinue = useCallback((): void => {
-    router.replace("/room");
+    // Hide victory modal and show matrix sequence
+    setShowVictory(false);
+    setShowVictoryCard(false);
+    setShowMatrixSequence(true);
+  }, []);
+
+  const handleMatrixSequenceComplete = useCallback((): void => {
+    // Transition from matrix sequence to decryption letter
+    setShowMatrixSequence(false);
+    setShowDecryptionLetter(true);
+  }, []);
+
+  const handleDecryptionLetterComplete = useCallback((): void => {
+    router.replace("/proposal");
   }, [router]);
+
+  const handleBriefingProceed = useCallback((): void => {
+    setShowBriefing(false);
+  }, []);
 
   return (
     <div className="bg-midnight fixed inset-0">
@@ -708,82 +936,132 @@ export default function CipherPage(): JSX.Element {
         }}
       />
 
-      <main className="relative flex h-full flex-col items-center justify-between px-4 py-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-center"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <h1 className="text-terminal-green/70 font-mono text-xs font-bold tracking-[0.3em] sm:text-sm">
-            ENCRYPTION PROTOCOL
-          </h1>
-          <p className="text-terminal-green/50 mt-1 font-mono text-xs">
-            Level {currentLevel + 1} of {CIPHER_LEVELS.length}
-          </p>
-        </motion.div>
-
-        {/* Game area - Grid and Dinn feedback layered */}
-        <div className="relative flex flex-1 flex-col items-center justify-center">
-          {/* Grid - fades out when Dinn shows */}
-          <motion.div
-            animate={{ opacity: gridVisible && !dinnMode ? 1 : 0 }}
-            transition={{
-              duration: CIPHER_CONFIG.GRID_FADE_DURATION_MS / 1000,
-            }}
-            className="absolute"
+      <AnimatePresence>
+        {!showBriefing && (
+          <motion.main
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="relative flex h-full flex-col items-center justify-between px-4 py-6"
           >
-            <CipherGrid
-              guesses={guesses}
-              currentGuess={currentGuess}
-              currentRow={currentRow}
-              shakeRow={shakeRow}
-              isRevealing={isRevealing}
-              revealingRow={revealingRow}
-            />
-          </motion.div>
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center"
+              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            >
+              <h1 className="text-terminal-green/70 font-mono text-xs font-bold tracking-[0.3em] sm:text-sm">
+                ENCRYPTION PROTOCOL
+              </h1>
+              <p className="text-terminal-green/50 mt-1 font-mono text-xs">
+                Level {currentLevel + 1} of {CIPHER_LEVELS.length}
+              </p>
+            </motion.div>
 
-          {/* Dinn feedback - fades in when showing */}
-          <AnimatePresence>
-            {dinnMode && (
+            {/* Game area - Grid and Dinn feedback layered */}
+            <div className="relative flex flex-1 flex-col items-center justify-center">
+              {/* Grid - fades out when Dinn shows */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                animate={{ opacity: gridVisible && !dinnMode ? 1 : 0 }}
+                transition={{
+                  duration: CIPHER_CONFIG.GRID_FADE_DURATION_MS / 1000,
+                }}
                 className="absolute"
               >
-                <DinnFeedback mode={dinnMode} message={dinnMessage} />
+                <CipherGrid
+                  guesses={guesses}
+                  currentGuess={currentGuess}
+                  currentRow={currentRow}
+                  shakeRow={shakeRow}
+                  isRevealing={isRevealing}
+                  revealingRow={revealingRow}
+                />
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
-        {/* Keyboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: dinnMode ? 0.3 : 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="w-full"
-          style={{
-            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
-          }}
-        >
-          <CipherKeyboard
-            keyStates={keyStates}
-            onKeyPress={handleKeyPress}
-            disabled={isProcessing || isRevealing || showVictory || !!dinnMode}
-          />
-        </motion.div>
-      </main>
+              {/* Dinn feedback - fades in when showing */}
+              <AnimatePresence>
+                {dinnMode && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute"
+                  >
+                    <DinnFeedback mode={dinnMode} message={dinnMessage} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Keyboard */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: dinnMode ? 0.3 : 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="w-full"
+              style={{
+                paddingBottom:
+                  "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
+              }}
+            >
+              <CipherKeyboard
+                keyStates={keyStates}
+                onKeyPress={handleKeyPress}
+                disabled={
+                  isProcessing || isRevealing || showVictory || !!dinnMode
+                }
+              />
+            </motion.div>
+          </motion.main>
+        )}
+      </AnimatePresence>
 
       {/* Victory modal */}
       <VictoryModal
         isVisible={showVictory}
+        showCard={showVictoryCard}
         onContinue={handleVictoryContinue}
       />
+
+      {/* Classified briefing */}
+      <AnimatePresence>
+        {showBriefing && (
+          <ClassifiedBriefing onProceed={handleBriefingProceed} />
+        )}
+      </AnimatePresence>
+
+      {/* Matrix sequence - shown after victory */}
+      <AnimatePresence>
+        {showMatrixSequence && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black"
+          >
+            {/* Matrix rain effect */}
+            <MatrixRain />
+
+            {/* Terminal boot sequence - appears after rain starts */}
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <FinalBootSequence
+                startDelay={1800}
+                onComplete={handleMatrixSequenceComplete}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Decryption letter - shown after matrix sequence */}
+      <AnimatePresence>
+        {showDecryptionLetter && (
+          <DecryptionLetter onComplete={handleDecryptionLetterComplete} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
